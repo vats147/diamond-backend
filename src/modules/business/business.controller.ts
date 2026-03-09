@@ -79,6 +79,7 @@ export const removeUser = async (req: Request, res: Response, next: NextFunction
 };
 
 export const checkSlugAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    console.log('DEBUG: checkSlugAvailability called with slug:', req.params['slug']);
     try {
         const slug = String(req.params['slug']);
         const isAvailable = await businessService.checkSlugAvailability(slug);

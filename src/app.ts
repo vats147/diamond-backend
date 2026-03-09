@@ -51,7 +51,9 @@ app.get('/health', (_req, res) => {
 });
 
 // Routes
+console.log('\n\n🚀 [DEBUG] STARTING ROUTE MOUNTING...\n\n');
 app.use('/api/auth', authRoutes);
+
 app.use('/api/businesses', businessRoutes);
 app.use('/api/diamonds', diamondRoutes);
 app.use('/api/inquiries', inquiryRoutes);

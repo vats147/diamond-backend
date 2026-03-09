@@ -47,7 +47,14 @@ app.get('/health', (_req, res) => {
     res.json({ success: true, message: 'Diamond Market API is running', timestamp: new Date() });
 });
 // Routes
+console.log('\n\n🚀 [DEBUG] STARTING ROUTE MOUNTING...\n\n');
 app.use('/api/auth', auth_routes_1.default);
+// Direct Route for Slug Check (Bypass router for debugging 404)
+app.get('/api/businesses/check-slug/:slug', (req, res, next) => {
+    console.log('🎯 [DEBUG] Hit direct check-slug route in app.ts for slug:', req.params.slug);
+    const businessController = require('./modules/business/business.controller');
+    return businessController.checkSlugAvailability(req, res, next);
+});
 app.use('/api/businesses', business_routes_1.default);
 app.use('/api/diamonds', diamond_routes_1.default);
 app.use('/api/inquiries', inquiry_routes_1.default);

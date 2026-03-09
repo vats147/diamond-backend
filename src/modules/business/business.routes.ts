@@ -13,33 +13,11 @@ import * as ctrl from './business.controller';
 
 const router = Router();
 
-/**
- * @route  GET /api/businesses
- * @desc   List all businesses
- * @access Super Admin
- * @returns { success, data: Business[] }
- * @errors 401 No token | 403 Not super admin
- */
 router.get('/check-slug/:slug', ctrl.checkSlugAvailability);
 router.get('/', authenticate, requireRole('SUPER_ADMIN'), ctrl.listBusinesses);
 
 /**
  * @route  GET /api/businesses/slug/:slug/branding
- * @desc   Get branding by slug (public)
- * @access Public
- * @returns { success, data: { name, logoUrl, font, theme, whatsappNumber } }
- * @errors 404 Business not found
- */
-router.get('/slug/:slug/branding', ctrl.getBranding);
-
-/**
- * @route  GET /api/businesses/:id
- * @desc   Get business by ID
- * @access Super Admin
- * @returns { success, data: Business }
- * @errors 401 | 403 | 404
- */
-router.get('/:id', authenticate, requireRole('SUPER_ADMIN'), ctrl.getBusinessById);
 
 /**
  * @route  POST /api/businesses

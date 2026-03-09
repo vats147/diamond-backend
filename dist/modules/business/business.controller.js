@@ -146,6 +146,7 @@ const removeUser = async (req, res, next) => {
 };
 exports.removeUser = removeUser;
 const checkSlugAvailability = async (req, res, next) => {
+    console.log('DEBUG: checkSlugAvailability called with slug:', req.params['slug']);
     try {
         const slug = String(req.params['slug']);
         const isAvailable = await businessService.checkSlugAvailability(slug);

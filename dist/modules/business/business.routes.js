@@ -48,7 +48,7 @@ const router = (0, express_1.Router)();
  * @returns { success, data: Business[] }
  * @errors 401 No token | 403 Not super admin
  */
-router.get('/check-slug/:slug', ctrl.checkSlugAvailability);
+// router.get('/check-slug/:slug', ctrl.checkSlugAvailability); // Moved to app.ts for debugging
 router.get('/', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('SUPER_ADMIN'), ctrl.listBusinesses);
 /**
  * @route  GET /api/businesses/slug/:slug/branding
