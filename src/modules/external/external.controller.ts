@@ -14,7 +14,7 @@ export const extListDiamonds = async (req: ApiKeyRequest, res: Response, next: N
 export const extCreateDiamond = async (req: ApiKeyRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const payload = { ...req.body, businessId: req.businessId! };
-        const result = await diamondService.createDiamond(payload, {});
+        const result = await diamondService.createDiamond(payload, undefined, { images: [], certificateFile: [], video: [] });
         sendSuccess(res, result, 'Diamond created', 201);
     } catch (err) { next(err); }
 };
@@ -23,7 +23,7 @@ export const extUpdateDiamond = async (req: ApiKeyRequest, res: Response, next: 
     try {
         const diamondId = String(req.params['id']);
         // Passing 'OWNER' role ensures they can only update their own business's diamonds
-        const result = await diamondService.updateDiamond(diamondId, req.businessId!, 'OWNER', req.body, {});
+        const result = await diamondService.updateDiamond(diamondId, req.businessId!, 'OWNER', undefined, req.body, { images: [], certificateFile: [], video: [] });
         sendSuccess(res, result, 'Diamond updated');
     } catch (err) { next(err); }
 };

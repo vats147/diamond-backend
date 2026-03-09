@@ -20,6 +20,7 @@ const router = Router();
  * @returns { success, data: Business[] }
  * @errors 401 No token | 403 Not super admin
  */
+router.get('/check-slug/:slug', ctrl.checkSlugAvailability);
 router.get('/', authenticate, requireRole('SUPER_ADMIN'), ctrl.listBusinesses);
 
 /**

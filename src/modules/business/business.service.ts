@@ -62,7 +62,13 @@ export const createBusiness = async (
         where: { OR: [{ slug }, { email: input.email }] },
     });
     if (existing) {
-        throw Object.assign(new Error('Business with that name or email already exists'), { statusCode: 409 });
+        const error: any = new Error('Business with that name or email already exists');
+        error.statusCode = 409;
+        error.details = [{
+            field: existing.email === input.email ? 'email' : 'name',
+            message: 'Already in use'
+        }];
+        throw error;
     }
 
     let logoUrl: string | undefined;
@@ -85,6 +91,7 @@ export const createBusiness = async (
             gstNo: input.gstNo,
             tagline: input.tagline,
             font: input.font,
+            theme: (input as any).theme,
             logoUrl,
             planType: 'TRIAL',
             trialEndsAt,
@@ -186,4 +193,9 @@ export const removeUser = async (businessId: string, userId: string, actingUser:
     }
 
     await prisma.user.delete({ where: { id: userId, businessId } });
+};
+
+export const checkSlugAvailability = async (slug: string) => {
+    const existing = await prisma.business.findUnique({ where: { slug } });
+    return !existing;
 };
