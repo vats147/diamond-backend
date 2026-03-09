@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────
+// BUSINESS
+// ─────────────────────────────────────
+model Business {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  slug           String    @unique
+  contactNumber  String
+  ownerName      String
+  email          String    @unique
+  whatsappNumber String
+  logoUrl        String?
+  font           String    @default("Inter")
+  theme          Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  users     User[]
+  diamonds  Diamond[]
+  inquiries Inquiry[]
+}
+
+// ─────────────────────────────────────
+// USER
+// ─────────────────────────────────────
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(OWNER)
+  businessId   String?   @db.ObjectId
+  business     Business? @relation(fields: [businessId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+}
+
+// ─────────────────────────────────────
+// DIAMOND
+// ─────────────────────────────────────
+model Diamond {
+  id                 String          @id @default(auto()) @map("_id") @db.ObjectId
+  businessId         String          @db.ObjectId
+  business           Business        @relation(fields: [businessId], references: [id])
+
+  certificateNumber  String?
+  certificateLab     CertificateLab?
+  certificateFileUrl String?
+
+  shape              String
+  carat              Float
+  color              String
+  clarity            String
+  cut                String?
+  polish             String?
+  symmetry           String?
+  fluorescence       String?
+  measurements       String?
+
+  price              Float
+
+  images             String[]
+  videoUrl           String?
+
+  uploadMethod       UploadMethod    @default(MANUAL)
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  inquiries          Inquiry[]
+}
+
+enum CertificateLab {
+  GIA
+  IGI
+  HRD
+  AGS
+  OTHER
+}
+
+enum UploadMethod {
+  CERTIFICATE_ID
+  CERTIFICATE_FILE
+  MANUAL
+}
+
+// ─────────────────────────────────────
+// INQUIRY
+// ─────────────────────────────────────
+model Inquiry {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId String   @db.ObjectId
+  business   Business @relation(fields: [businessId], references: [id])
+  diamondId  String?  @db.ObjectId
+  diamond    Diamond? @relation(fields: [diamondId], references: [id])
+  name       String
+  email      String
+  phone      String?
+  message    String
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────────────────
+// REQUEST LOG
+// ─────────────────────────────────────
+model RequestLog {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  method       String
+  path         String
+  statusCode   Int
+  responseTime Int
+  ip           String?
+  userId       String?
+  userRole     String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}

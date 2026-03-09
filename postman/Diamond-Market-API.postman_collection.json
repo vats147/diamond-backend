@@ -1,0 +1,1079 @@
+{
+    "info": {
+        "name": "Diamond Market API",
+        "description": "Complete API reference for the Diamond Management and Listing System.\n\nSetup:\n1. Set `base_url` variable (default: http://localhost:4000)\n2. Run Admin Login -> copy token -> set `admin_token` variable\n3. Run Owner Login -> copy token -> set `owner_token` variable",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:4000",
+            "type": "string"
+        },
+        {
+            "key": "admin_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "owner_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "business_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "business_slug",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "diamond_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "inquiry_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Verify the API is running.\n\nResponse 200:\n```json\n{ \"success\": true, \"message\": \"Diamond Market API is running\", \"timestamp\": \"...\" }\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('admin_token', json.data.token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/admin/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "admin",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@diamond.com\",\n  \"password\": \"Admin@1234\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Super Admin login. Token auto-saved to `admin_token` on success.\n\nRequest body:\n- email (string, required)\n- password (string, required)\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"token\": \"...\", \"user\": { \"id\": \"...\", \"role\": \"SUPER_ADMIN\" } } }\n```\n\nErrors:\n- 400: Validation failed\n- 401: Invalid credentials"
+                    }
+                },
+                {
+                    "name": "Owner Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('owner_token', json.data.token);",
+                                    "  pm.collectionVariables.set('business_id', json.data.user.businessId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/owner/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "owner",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"businessSlug\": \"{{business_slug}}\",\n  \"email\": \"owner@business.com\",\n  \"password\": \"your_password\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Business Owner login. Token + businessId auto-saved on success.\n\nRequest body:\n- businessSlug (string, required)\n- email (string, required)\n- password (string, required)\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"token\": \"...\", \"user\": { \"id\": \"...\", \"role\": \"OWNER\", \"businessId\": \"...\" } } }\n```\n\nErrors:\n- 400: Validation failed\n- 401: Invalid credentials\n- 404: Business not found"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Logout (client-side token disposal).\n\nResponse 200:\n```json\n{ \"success\": true, \"message\": \"Logged out successfully\", \"data\": null }\n```\n\nErrors:\n- 401: No or invalid token"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Businesses",
+            "item": [
+                {
+                    "name": "List All Businesses",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses"
+                            ]
+                        },
+                        "description": "List all registered businesses.\n\nAuth: Super Admin only\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": [ { \"id\": \"...\", \"name\": \"...\", \"slug\": \"...\", \"_count\": { \"diamonds\": 42 } } ] }\n```\n\nErrors:\n- 401: No or invalid token\n- 403: Not Super Admin"
+                    }
+                },
+                {
+                    "name": "Create Business",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('business_id', json.data.id);",
+                                    "  pm.collectionVariables.set('business_slug', json.data.slug);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "ABC Diamonds",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contactNumber",
+                                    "value": "+919876543210",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "ownerName",
+                                    "value": "John Doe",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "email",
+                                    "value": "john@abcdiamonds.com",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "whatsappNumber",
+                                    "value": "+919876543210",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "ownerPassword",
+                                    "value": "Owner@1234",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "font",
+                                    "value": "Poppins",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "logo",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Create a new business + auto-creates owner login account.\n\nAuth: Super Admin\nContent-Type: multipart/form-data\n\nRequired fields: name, contactNumber, ownerName, email, whatsappNumber, ownerPassword\nOptional fields: font, logo (file)\n\nResponse 201:\n```json\n{ \"success\": true, \"data\": { \"id\": \"...\", \"slug\": \"abc-diamonds\", ... } }\n```\n\nErrors:\n- 400: Validation failed\n- 401 / 403: Auth\n- 409: Email or slug already exists"
+                    }
+                },
+                {
+                    "name": "Get Business by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/{{business_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "{{business_id}}"
+                            ]
+                        },
+                        "description": "Get single business with diamond and inquiry counts.\n\nErrors: 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Update Business",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/{{business_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "{{business_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "ABC Diamonds Updated",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contactNumber",
+                                    "value": "+919999999999",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "logo",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Update business fields (all optional). Send `logo` file to update logo.\n\nErrors: 400 | 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Delete Business",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/{{business_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "{{business_id}}"
+                            ]
+                        },
+                        "description": "Delete business and all its diamonds, inquiries, and user accounts.\n\nWARNING: This is irreversible.\n\nErrors: 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Set Business Theme",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/{{business_id}}/theme",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "{{business_id}}",
+                                "theme"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"primaryColor\": \"#1a1a2e\",\n  \"secondaryColor\": \"#e94560\",\n  \"accentColor\": \"#0f3460\",\n  \"font\": \"Poppins\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Set visual theme for a business storefront. All fields optional.\n\nErrors: 400 | 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Create Owner Account",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/{{business_id}}/users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "{{business_id}}",
+                                "users"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"owner2@abcdiamonds.com\",\n  \"password\": \"Owner@1234\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Create an additional owner login for a business.\n\nErrors: 400 | 401 | 403 | 404 | 409 (email already taken)"
+                    }
+                },
+                {
+                    "name": "Get Business Branding (Public)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/slug/{{business_slug}}/branding",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "slug",
+                                "{{business_slug}}",
+                                "branding"
+                            ]
+                        },
+                        "description": "Fetch theme and branding for a business by slug. No auth required.\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"name\": \"...\", \"logoUrl\": \"...\", \"font\": \"Poppins\", \"theme\": { ... }, \"whatsappNumber\": \"+91...\" } }\n```\n\nErrors: 404 - Business not found"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Diamonds",
+            "item": [
+                {
+                    "name": "List Diamonds",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds?businessId={{business_id}}&page=1&limit=20&sortBy=price&sortOrder=asc",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds"
+                            ],
+                            "query": [
+                                {
+                                    "key": "businessId",
+                                    "value": "{{business_id}}",
+                                    "description": "REQUIRED"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "sortBy",
+                                    "value": "price",
+                                    "description": "price | carat | createdAt"
+                                },
+                                {
+                                    "key": "sortOrder",
+                                    "value": "asc",
+                                    "description": "asc | desc"
+                                },
+                                {
+                                    "key": "shape",
+                                    "value": "Round,Oval",
+                                    "description": "Comma-separated shapes",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "colors",
+                                    "value": "D,E,F,G",
+                                    "description": "Comma-separated color grades",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "clarities",
+                                    "value": "VS1,VS2,VVS1",
+                                    "description": "Comma-separated clarity grades",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "caratMin",
+                                    "value": "0.5",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "caratMax",
+                                    "value": "3.0",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "priceMin",
+                                    "value": "1000",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "priceMax",
+                                    "value": "50000",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "lab",
+                                    "value": "GIA,IGI",
+                                    "description": "Certificate lab filter",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "7452361890",
+                                    "description": "Certificate number or keyword",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "List diamonds with filters and pagination. No auth required.\n\nbusinessId is REQUIRED.\n\nAll filter params are optional. Colors are admin-controlled (pass a comma-separated list of valid grades).\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"diamonds\": [...], \"total\": 120, \"page\": 1, \"limit\": 20, \"totalPages\": 6 } }\n```"
+                    }
+                },
+                {
+                    "name": "Get Diamond by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds/{{diamond_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds",
+                                "{{diamond_id}}"
+                            ]
+                        },
+                        "description": "Get full diamond detail. No auth required.\n\nErrors: 404 - Diamond not found"
+                    }
+                },
+                {
+                    "name": "Add Diamond",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('diamond_id', json.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "businessId",
+                                    "value": "{{business_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "shape",
+                                    "value": "Round",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "carat",
+                                    "value": "1.02",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "color",
+                                    "value": "E",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "clarity",
+                                    "value": "VS1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "8500",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "uploadMethod",
+                                    "value": "MANUAL",
+                                    "type": "text",
+                                    "description": "MANUAL | CERTIFICATE_ID | CERTIFICATE_FILE"
+                                },
+                                {
+                                    "key": "cut",
+                                    "value": "Excellent",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "polish",
+                                    "value": "Excellent",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "symmetry",
+                                    "value": "Very Good",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "fluorescence",
+                                    "value": "None",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "measurements",
+                                    "value": "6.45 x 6.48 x 3.99",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "certificateNumber",
+                                    "value": "7452361890",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "certificateLab",
+                                    "value": "GIA",
+                                    "type": "text",
+                                    "description": "GIA | IGI | HRD | AGS | OTHER"
+                                },
+                                {
+                                    "key": "images",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true,
+                                    "description": "Up to 10 images"
+                                },
+                                {
+                                    "key": "video",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "certificateFile",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Add a diamond to the inventory.\n\nAuth: Owner or Super Admin\nContent-Type: multipart/form-data\n\nRequired: businessId, shape, carat, color, clarity, price, uploadMethod\nuploadMethod values: MANUAL | CERTIFICATE_ID | CERTIFICATE_FILE\ncertificateLab values: GIA | IGI | HRD | AGS | OTHER\n\nFile fields (optional): images[] (up to 10), video (1), certificateFile (PDF or image)\n\nResponse 201:\n```json\n{ \"success\": true, \"data\": { \"id\": \"...\", ... } }\n```\n\nErrors: 400 | 401 | 403"
+                    }
+                },
+                {
+                    "name": "Update Diamond",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds/{{diamond_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds",
+                                "{{diamond_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "price",
+                                    "value": "9500",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "cut",
+                                    "value": "Very Good",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "images",
+                                    "type": "file",
+                                    "src": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Update any diamond fields (all optional). Owners can only update their own business diamonds.\n\nErrors: 400 | 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Delete Diamond",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds/{{diamond_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds",
+                                "{{diamond_id}}"
+                            ]
+                        },
+                        "description": "Delete a diamond and its inquiries. Owners can only delete diamonds in their own business.\n\nResponse 200:\n```json\n{ \"success\": true, \"message\": \"Diamond deleted\", \"data\": null }\n```\n\nErrors: 401 | 403 | 404"
+                    }
+                },
+                {
+                    "name": "Fetch from GIA or IGI",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds/fetch-by-certificate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds",
+                                "fetch-by-certificate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"certificateNumber\": \"7452361890\",\n  \"lab\": \"GIA\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Fetch diamond specs from GIA or IGI by certificate number.\n\nAuth: Owner or Super Admin\n\nlab values: GIA | IGI\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"certificateNumber\": \"...\", \"shape\": \"Round Brilliant\", \"carat\": 1.02, \"color\": \"E\", \"clarity\": \"VS1\", \"cut\": \"Excellent\", ... } }\n```\n\nErrors: 400 | 401 | 403 | 422 - GIA/IGI fetch failed"
+                    }
+                },
+                {
+                    "name": "Extract Certificate via OCR",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/diamonds/extract-certificate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "diamonds",
+                                "extract-certificate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "certificate",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        },
+                        "description": "Upload a certificate file (PDF or image) and extract data using Tesseract.js OCR.\n\nAuth: Owner or Super Admin\nContent-Type: multipart/form-data\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"certificateNumber\": \"...\", \"shape\": \"...\", \"carat\": \"1.02\", \"color\": \"E\", \"clarity\": \"VS1\", \"confidence\": 0.87 } }\n```\n\nconfidence is 0 to 1 (Tesseract accuracy score).\n\nErrors: 400 - No file | 401 | 403"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Inquiries",
+            "item": [
+                {
+                    "name": "Submit Inquiry",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inquiries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inquiries"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"businessId\": \"{{business_id}}\",\n  \"diamondId\": \"{{diamond_id}}\",\n  \"name\": \"Ravi Patel\",\n  \"email\": \"ravi@example.com\",\n  \"phone\": \"+919876543210\",\n  \"message\": \"I am interested in this diamond. Please contact me.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Submit a client inquiry. No auth required.\n\ndiamondId is optional. Omit for a general business inquiry.\nSide effects: sends email notification to business owner (if SMTP configured).\n\nResponse 201:\n```json\n{ \"success\": true, \"message\": \"Inquiry submitted successfully\", \"data\": { \"id\": \"...\" } }\n```\n\nErrors:\n- 400: Validation failed\n- 404: Business not found"
+                    }
+                },
+                {
+                    "name": "List Inquiries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inquiries?page=1&limit=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inquiries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "businessId",
+                                    "value": "{{business_id}}",
+                                    "disabled": true,
+                                    "description": "Admin only - filter by business"
+                                },
+                                {
+                                    "key": "diamondId",
+                                    "value": "{{diamond_id}}",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "List inquiries.\n\nAuth: Owner or Super Admin\n- Owners automatically see only their own business inquiries\n- Super Admin can filter by businessId or diamondId\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"inquiries\": [...], \"total\": 15, \"page\": 1, \"limit\": 20, \"totalPages\": 1 } }\n```\n\nErrors: 401 | 403"
+                    }
+                },
+                {
+                    "name": "Get Inquiry by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{owner_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inquiries/{{inquiry_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inquiries",
+                                "{{inquiry_id}}"
+                            ]
+                        },
+                        "description": "Get single inquiry with diamond and business info.\n\nErrors: 401 | 403 (owner accessing another business inquiry) | 404"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Store (Public Storefront)",
+            "item": [
+                {
+                    "name": "Get Store Landing",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/store/{{business_slug}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "store",
+                                "{{business_slug}}"
+                            ]
+                        },
+                        "description": "Storefront initial load. Returns business info + first 50 diamonds in one call. No auth required.\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"business\": { \"name\": \"...\", \"logoUrl\": \"...\", \"theme\": {...} }, \"diamonds\": [...], \"total\": 45 } }\n```\n\nErrors: 404 - Business not found"
+                    }
+                },
+                {
+                    "name": "Get Store Diamonds (Paginated)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/store/{{business_slug}}/diamonds?page=1&limit=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "store",
+                                "{{business_slug}}",
+                                "diamonds"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "sortBy",
+                                    "value": "price",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "sortOrder",
+                                    "value": "asc",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "shape",
+                                    "value": "Round",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "lab",
+                                    "value": "GIA",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Paginated diamond listing for storefront. No auth required.\n\nErrors: 404 - Business not found"
+                    }
+                },
+                {
+                    "name": "Get Store Diamond Detail",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/store/{{business_slug}}/diamonds/{{diamond_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "store",
+                                "{{business_slug}}",
+                                "diamonds",
+                                "{{diamond_id}}"
+                            ]
+                        },
+                        "description": "Diamond detail page for the public storefront. No auth required.\n\nErrors: 404 - Business or Diamond not found"
+                    }
+                }
+            ]
+        }
+    ]
+}
