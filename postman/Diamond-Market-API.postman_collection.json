@@ -487,6 +487,150 @@
                         },
                         "description": "Fetch theme and branding for a business by slug. No auth required.\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"name\": \"...\", \"logoUrl\": \"...\", \"font\": \"Poppins\", \"theme\": { ... }, \"whatsappNumber\": \"+91...\" } }\n```\n\nErrors: 404 - Business not found"
                     }
+                },
+                {
+                    "name": "Get Storefront Diamonds",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/businesses/slug/{{business_slug}}/diamonds?page=1&limit=20&sortBy=price&sortOrder=asc",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "businesses",
+                                "slug",
+                                "{{business_slug}}",
+                                "diamonds"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "sortBy",
+                                    "value": "price",
+                                    "description": "price | carat | createdAt"
+                                },
+                                {
+                                    "key": "sortOrder",
+                                    "value": "asc",
+                                    "description": "asc | desc"
+                                },
+                                {
+                                    "key": "shape",
+                                    "value": "Round,Oval",
+                                    "description": "Comma-separated shapes",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "colors",
+                                    "value": "D,E,F,G",
+                                    "description": "Comma-separated color grades",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "clarities",
+                                    "value": "VS1,VS2,VVS1",
+                                    "description": "Comma-separated clarity grades",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "caratMin",
+                                    "value": "0.5",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "caratMax",
+                                    "value": "3.0",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "priceMin",
+                                    "value": "1000",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "priceMax",
+                                    "value": "50000",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "lab",
+                                    "value": "GIA,IGI",
+                                    "description": "Certificate lab filter",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "tableMin",
+                                    "value": "55",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "tableMax",
+                                    "value": "60",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "depthAbsMin",
+                                    "value": "5",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "depthAbsMax",
+                                    "value": "10",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "shade",
+                                    "value": "N,VLB,BT",
+                                    "description": "Comma-separated shade options",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "luster",
+                                    "value": "EX,VG,ML1",
+                                    "description": "Comma-separated luster options",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "culet",
+                                    "value": "EX",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "tableInclusion",
+                                    "value": "White",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "AVAILABLE",
+                                    "description": "AVAILABLE | HOLD | SOLD",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "shading",
+                                    "value": "N,VLB,BT",
+                                    "description": "Comma-separated shading options",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "proportions",
+                                    "value": "EX,VG",
+                                    "description": "Comma-separated proportions options",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Paginated diamonds for a frontend storefront. No auth required.\n\nFilters match the `GET /api/diamonds` endpoint (supports `shade`, `tableMin`, `colors`, etc).\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"diamonds\": [...], \"total\":... } }\n```"
+                    }
                 }
             ]
         },
@@ -575,14 +719,56 @@
                                     "disabled": true
                                 },
                                 {
-                                    "key": "search",
-                                    "value": "7452361890",
-                                    "description": "Certificate number or keyword",
+                                    "key": "tableMin",
+                                    "value": "55",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "tableMax",
+                                    "value": "60",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "depthAbsMin",
+                                    "value": "5",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "depthAbsMax",
+                                    "value": "10",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "shade",
+                                    "value": "N,VLB,BT",
+                                    "description": "Comma-separated shade options",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "luster",
+                                    "value": "EX,VG,ML1",
+                                    "description": "Comma-separated luster options",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "culet",
+                                    "value": "EX",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "tableInclusion",
+                                    "value": "White",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "AVAILABLE",
+                                    "description": "AVAILABLE | HOLD | SOLD",
                                     "disabled": true
                                 }
                             ]
                         },
-                        "description": "List diamonds with filters and pagination. No auth required.\n\nbusinessId is REQUIRED.\n\nAll filter params are optional. Colors are admin-controlled (pass a comma-separated list of valid grades).\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"diamonds\": [...], \"total\": 120, \"page\": 1, \"limit\": 20, \"totalPages\": 6 } }\n```"
+                        "description": "List diamonds with advanced filters and pagination. No auth required.\n\nbusinessId is REQUIRED.\n\nAll filter params are optional. Range filters (min/max), comma-separated exact matches, and string search are supported.\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"diamonds\": [...], \"total\": 120, \"page\": 1, \"limit\": 20, \"totalPages\": 6 } }\n```"
                     }
                 },
                 {

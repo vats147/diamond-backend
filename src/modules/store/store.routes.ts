@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../../config/db';
 import { sendSuccess } from '../../utils/response';
+import redisClient, { getStorefrontCacheKey, getBusinessDiamondsCacheKey } from '../../config/redis';
 
 const router = Router();
 
@@ -14,6 +15,14 @@ const router = Router();
 router.get('/:slug', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const slug = String(req.params['slug']);
+        const cacheKey = getStorefrontCacheKey(slug);
+        try {
+            const cached = await redisClient.get(cacheKey);
+            if (cached) {
+                return sendSuccess(res, JSON.parse(cached));
+            }
+        } catch (err) { console.error('[Redis] Get Error:', err); }
+
         const business = await prisma.business.findUnique({
             where: { slug },
             select: {
@@ -41,7 +50,12 @@ router.get('/:slug', async (req: Request, res: Response, next: NextFunction) => 
         ]);
 
         const { id: _id, ...publicBusiness } = business;
-        sendSuccess(res, { business: publicBusiness, diamonds, total });
+        const responseData = { business: publicBusiness, diamonds, total };
+
+        // Cache for 1 hour
+        redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 3600).catch(err => console.error('[Redis] Set error:', err));
+
+        sendSuccess(res, responseData);
     } catch (err) { next(err); }
 });
 
@@ -67,6 +81,16 @@ router.get('/:slug/diamonds', async (req: Request, res: Response, next: NextFunc
         const sortBy = (req.query['sortBy'] as string) || 'createdAt';
         const sortOrder: 'asc' | 'desc' = req.query['sortOrder'] === 'asc' ? 'asc' : 'desc';
 
+        const { page: _p, limit: _l, ...restQuery } = req.query as Record<string, string>;
+        const cacheKey = getBusinessDiamondsCacheKey(business.id, page, limit, JSON.stringify(restQuery));
+
+        try {
+            const cached = await redisClient.get(cacheKey);
+            if (cached) {
+                return sendSuccess(res, JSON.parse(cached));
+            }
+        } catch (err) { console.error('[Redis] Get Error:', err); }
+
         const where: Record<string, unknown> = { businessId: business.id };
         if (req.query['shape']) where['shape'] = { in: (req.query['shape'] as string).split(',') };
         if (req.query['lab']) where['certificateLab'] = { in: (req.query['lab'] as string).split(',') };
@@ -76,7 +100,10 @@ router.get('/:slug/diamonds', async (req: Request, res: Response, next: NextFunc
             prisma.diamond.count({ where }),
         ]);
 
-        sendSuccess(res, { diamonds, total, page, limit, totalPages: Math.ceil(total / limit) });
+        const responseData = { diamonds, total, page, limit, totalPages: Math.ceil(total / limit) };
+        redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 600).catch(e => console.error(e));
+
+        sendSuccess(res, responseData);
     } catch (err) { next(err); }
 });
 

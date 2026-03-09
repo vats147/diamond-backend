@@ -27,6 +27,7 @@ model Business {
   users     User[]
   diamonds  Diamond[]
   inquiries Inquiry[]
+  apiKeys   ApiKey[]
 }
 
 // ─────────────────────────────────────
@@ -68,7 +69,36 @@ model Diamond {
   polish             String?
   symmetry           String?
   fluorescence       String?
-  measurements       String?
+  measurements       String? // Keep string as fallback, but add explicit floats for range filtering:
+
+  // --- PROPORTIONS & MEASUREMENTS ---
+  tablePercentage    Float?
+  depthPercentage    Float?
+  ratio              Float?
+  length             Float?
+  width              Float?
+  depth              Float?
+
+  // --- VISUAL CHARACTERISTICS ---
+  shade              String?
+  luster             String?
+  culet              String?
+  heartsAndArrows    String?
+
+  // --- INCLUSIONS & FACETS ---
+  tableInclusion     String?
+  sideInclusion      String?
+  tableBlack         String?
+  sideBlack          String?
+  extraFacet         String?
+  girdle             String?
+  tableOpen          String?
+  sideOpen           String?
+
+  // --- LOGISTICS & AVAILABILITY ---
+  status             DiamondStatus @default(AVAILABLE)
+  location           String?
+  earlyBird          String?
 
   price              Float
 
@@ -88,6 +118,8 @@ enum CertificateLab {
   IGI
   HRD
   AGS
+  JOB
+  GSI
   OTHER
 }
 
@@ -95,6 +127,12 @@ enum UploadMethod {
   CERTIFICATE_ID
   CERTIFICATE_FILE
   MANUAL
+}
+
+enum DiamondStatus {
+  AVAILABLE
+  HOLD
+  SOLD
 }
 
 // ─────────────────────────────────────
@@ -127,4 +165,17 @@ model RequestLog {
   userRole     String?
   userAgent    String?
   createdAt    DateTime @default(now())
+}
+
+// ─────────────────────────────────────
+// API KEY (Developer Panel)
+// ─────────────────────────────────────
+model ApiKey {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  keyHash    String   @unique
+  businessId String   @db.ObjectId
+  business   Business @relation(fields: [businessId], references: [id])
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
 }

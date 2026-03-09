@@ -9,6 +9,9 @@ import businessRoutes from './modules/business/business.routes';
 import diamondRoutes from './modules/diamond/diamond.routes';
 import inquiryRoutes from './modules/inquiry/inquiry.routes';
 import storeRoutes from './modules/store/store.routes';
+import adminRoutes from './modules/admin/admin.routes';
+import developerRoutes from './modules/developer/developer.routes';
+import externalRoutes from './modules/external/external.routes';
 
 const app = express();
 
@@ -52,6 +55,11 @@ app.use('/api/businesses', businessRoutes);
 app.use('/api/diamonds', diamondRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/store', storeRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/developer', developerRoutes);
+
+// Public Developer API
+app.use('/api/v1', externalRoutes);
 
 // 404
 app.use((_req, res) => {

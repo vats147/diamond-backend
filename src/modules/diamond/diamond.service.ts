@@ -4,7 +4,8 @@ import { notifyNewDiamondAdded } from '../../utils/whatsapp';
 import { CreateDiamondInput, UpdateDiamondInput, FetchByCertificateInput } from './diamond.schema';
 import { fetchGIACertificate, fetchIGICertificate } from './certificate.service';
 import { extractCertificateData } from './ocr.service';
-import { CertificateLab, UploadMethod } from '@prisma/client';
+import { CertificateLab, UploadMethod, DiamondStatus } from '@prisma/client';
+import redisClient, { getBusinessDiamondsCacheKey, getStorefrontCacheKey } from '../../config/redis';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -14,6 +15,14 @@ const buildWhere = (query: Record<string, string>) => {
     const {
         businessId, shape, colors, caratMin, caratMax,
         clarities, priceMin, priceMax, lab, search,
+
+        // Advanced filter params mapping to DB properties
+        tableMin, tableMax, depthMin, depthMax, ratioMin, ratioMax,
+        lengthMin, lengthMax, widthMin, widthMax,
+        shade, luster, culet, heartsAndArrows,
+        tableInclusion, sideInclusion, tableBlack, sideBlack,
+        extraFacet, girdle, tableOpen, sideOpen,
+        status, location, earlyBird
     } = query;
 
     const where: Record<string, unknown> = { businessId };
@@ -21,23 +30,51 @@ const buildWhere = (query: Record<string, string>) => {
     if (shape) where['shape'] = { in: shape.split(',').map((s) => s.trim()) };
     if (lab) where['certificateLab'] = { in: lab.split(',').map((l) => l.trim().toUpperCase()) };
     if (clarities) where['clarity'] = { in: clarities.split(',').map((c) => c.trim()) };
-
-    // colors — comma-separated list of exact color grades (e.g. "D,E,F")
-    // The admin/frontend decides which color grades to include; no hardcoded order.
     if (colors) where['color'] = { in: colors.split(',').map((c) => c.trim().toUpperCase()) };
 
-    if (caratMin || caratMax) {
-        where['carat'] = {
-            ...(caratMin && { gte: parseFloat(caratMin) }),
-            ...(caratMax && { lte: parseFloat(caratMax) }),
-        };
-    }
+    // Range helpers
+    const addRange = (field: string, min?: string, max?: string) => {
+        if (min || max) {
+            where[field] = {
+                ...(min && { gte: parseFloat(min) }),
+                ...(max && { lte: parseFloat(max) }),
+            };
+        }
+    };
 
-    if (priceMin || priceMax) {
-        where['price'] = {
-            ...(priceMin && { gte: parseFloat(priceMin) }),
-            ...(priceMax && { lte: parseFloat(priceMax) }),
-        };
+    addRange('carat', caratMin, caratMax);
+    addRange('price', priceMin, priceMax);
+    addRange('tablePercentage', tableMin, tableMax);
+    addRange('depthPercentage', depthMin, depthMax);
+    addRange('ratio', ratioMin, ratioMax);
+    addRange('length', lengthMin, lengthMax);
+    addRange('width', widthMin, widthMax);
+    // Explicit depth range uses depth database field:
+    // This assumes they send `depthAbsMin`/`depthAbsMax` so not to conflict with depthPercentage min/max
+    addRange('depth', query.depthAbsMin, query.depthAbsMax);
+
+    // Exact matches (comma-separated arrays allowed from frontend)
+    const addIn = (field: string, value?: string) => {
+        if (value) where[field] = { in: value.split(',').map((v) => v.trim()) };
+    };
+
+    addIn('shade', shade);
+    addIn('luster', luster);
+    addIn('culet', culet);
+    addIn('heartsAndArrows', heartsAndArrows);
+    addIn('tableInclusion', tableInclusion);
+    addIn('sideInclusion', sideInclusion);
+    addIn('tableBlack', tableBlack);
+    addIn('sideBlack', sideBlack);
+    addIn('extraFacet', extraFacet);
+    addIn('girdle', girdle);
+    addIn('tableOpen', tableOpen);
+    addIn('sideOpen', sideOpen);
+    addIn('location', location);
+    addIn('earlyBird', earlyBird);
+
+    if (status) {
+        where['status'] = { in: status.split(',').map((s) => s.trim().toUpperCase()) };
     }
 
     if (search) {
@@ -48,6 +85,26 @@ const buildWhere = (query: Record<string, string>) => {
     }
 
     return where;
+};
+
+// --- CACHE INVALIDATION ---
+export const invalidateBusinessCache = async (businessId: string, businessSlug?: string) => {
+    try {
+        // Find all diamond list caches for this business
+        const keys = await redisClient.keys(`diamonds:bus:${businessId}:*`);
+        if (keys.length > 0) {
+            await redisClient.del(...keys);
+            console.log(`[Cache] Invalidated ${keys.length} diamond queries for ${businessId}`);
+        }
+
+        // If we know the slug, invalidate the storefront page too
+        if (businessSlug) {
+            await redisClient.del(getStorefrontCacheKey(businessSlug));
+            console.log(`[Cache] Invalidated storefront for ${businessSlug}`);
+        }
+    } catch (err) {
+        console.error('[Cache] Invalidation error:', err);
+    }
 };
 
 
@@ -62,6 +119,22 @@ export const listDiamonds = async (query: Record<string, string>) => {
     const sortBy = query.sortBy || 'createdAt';
     const sortOrder: 'asc' | 'desc' = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
+    if (!query.businessId) throw Object.assign(new Error('businessId is required'), { statusCode: 400 });
+
+    // Try Cache
+    // Stringify query params dynamically for cache key (excluding page/limit/businessId handled by helper)
+    const { page: _p, limit: _l, businessId, ...restQuery } = query;
+    const cacheKey = getBusinessDiamondsCacheKey(businessId, page, limit, JSON.stringify(restQuery));
+
+    try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+            return JSON.parse(cached); // fast path return
+        }
+    } catch (err) {
+        console.error('[Redis] Get error:', err);
+    }
+
     const where = buildWhere(query);
 
     const [diamonds, total] = await Promise.all([
@@ -74,7 +147,14 @@ export const listDiamonds = async (query: Record<string, string>) => {
         prisma.diamond.count({ where }),
     ]);
 
-    return { diamonds, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const result = { diamonds, total, page, limit, totalPages: Math.ceil(total / limit) };
+
+    // Set Cache for 10 minutes (600s)
+    redisClient.set(cacheKey, JSON.stringify(result), 'EX', 600).catch(err => {
+        console.error('[Redis] Set error:', err);
+    });
+
+    return result;
 };
 
 export const getDiamondById = async (id: string) => {
@@ -135,7 +215,11 @@ export const createDiamond = async (
     });
 
     // Fire-and-forget WhatsApp notification (no-op until provider configured)
-    const business = await prisma.business.findUnique({ where: { id: input.businessId } });
+    const business = await prisma.business.findUnique({ where: { id: input.businessId }, select: { name: true, whatsappNumber: true, slug: true } });
+
+    // Invalidate caches
+    invalidateBusinessCache(input.businessId, business?.slug);
+
     if (business) {
         notifyNewDiamondAdded(
             business.whatsappNumber,
@@ -188,17 +272,23 @@ export const updateDiamond = async (
         );
     }
 
-    return prisma.diamond.update({
+    const updated = await prisma.diamond.update({
         where: { id },
         data: {
             ...input,
             certificateLab: input.certificateLab as CertificateLab | undefined,
             uploadMethod: input.uploadMethod as UploadMethod | undefined,
+            status: input.status as DiamondStatus | undefined,
             ...(imageUrls.length > 0 && { images: imageUrls }),
             ...(videoUrl && { videoUrl }),
             ...(certificateFileUrl && { certificateFileUrl }),
         },
     });
+
+    const business = await prisma.business.findUnique({ where: { id: businessId }, select: { slug: true } });
+    invalidateBusinessCache(businessId, business?.slug);
+
+    return updated;
 };
 
 export const deleteDiamond = async (id: string, businessId: string, role: string) => {
@@ -208,6 +298,9 @@ export const deleteDiamond = async (id: string, businessId: string, role: string
     }
     await prisma.inquiry.deleteMany({ where: { diamondId: id } });
     await prisma.diamond.delete({ where: { id } });
+
+    const business = await prisma.business.findUnique({ where: { id: diamond.businessId }, select: { slug: true } });
+    invalidateBusinessCache(diamond.businessId, business?.slug);
 };
 
 export const fetchByCertificate = async (input: FetchByCertificateInput) => {
