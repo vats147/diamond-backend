@@ -104,9 +104,22 @@ router.put('/:id/theme', authenticate, requireRole('SUPER_ADMIN'), validate(them
 router.post(
     '/:id/users',
     authenticate,
-    requireRole('SUPER_ADMIN'),
+    requireRole('SUPER_ADMIN'), // TODO: Also allow Business OWNER to manage their own users
     validate(createOwnerUserSchema),
     ctrl.createOwnerUser
+);
+
+/**
+ * @route  DELETE /api/businesses/:id/users/:userId
+ * @desc   Remove a user from a business
+ * @access Super Admin or Business Owner
+ * @returns { success, message: 'User removed' }
+ * @errors 401 | 403 | 404
+ */
+router.delete(
+    '/:id/users/:userId',
+    authenticate,
+    ctrl.removeUser
 );
 
 export default router;

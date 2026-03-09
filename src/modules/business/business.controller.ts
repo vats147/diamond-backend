@@ -61,3 +61,11 @@ export const createOwnerUser = async (req: Request, res: Response, next: NextFun
         sendCreated(res, data, 'Owner account created');
     } catch (err) { next(err); }
 };
+
+export const removeUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const actingUser = (req as any).user;
+        await businessService.removeUser(String(req.params['id']), String(req.params['userId']), actingUser);
+        sendSuccess(res, null, 'User removed successfully');
+    } catch (err) { next(err); }
+};

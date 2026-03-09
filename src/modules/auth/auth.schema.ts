@@ -6,7 +6,7 @@ export const adminLoginSchema = z.object({
 });
 
 export const ownerLoginSchema = z.object({
-    businessSlug: z.string().min(1),
+    businessSlug: z.string().optional(),
     email: z.string().email(),
     password: z.string().min(1),
 });

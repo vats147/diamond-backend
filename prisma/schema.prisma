@@ -18,9 +18,16 @@ model Business {
   ownerName      String
   email          String    @unique
   whatsappNumber String
+  address        String?
+  gstNo          String?
+  tagline        String?
   logoUrl        String?
   font           String    @default("Inter")
   theme          Json?
+  planType       PlanType  @default(TRIAL)
+  trialEndsAt    DateTime?
+  planEndsAt     DateTime?
+  isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -47,6 +54,13 @@ model User {
 enum Role {
   SUPER_ADMIN
   OWNER
+}
+
+enum PlanType {
+  TRIAL
+  BASIC
+  PRO
+  ENTERPRISE
 }
 
 // ─────────────────────────────────────
@@ -179,3 +193,19 @@ model ApiKey {
   lastUsedAt DateTime?
   createdAt  DateTime @default(now())
 }
+
+// ─────────────────────────────────────
+// GLOBAL METADATA (Filter Configuration)
+// ─────────────────────────────────────
+model Metadata {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Stored as generic JSON to support complex tags (label, code, description, disabled, sortOrder)
+  // Categories: shapes, colors, clarities, shades, lusters, cutGrades, polishGrades, symmetryGrades,
+  // fluors, labs, locations, caratRanges, priceBands, origins, marketingTags, availabilityTags.
+  config          Json?
+
+  updatedAt       DateTime @updatedAt
+}
+
+

@@ -6,11 +6,19 @@ export const createBusinessSchema = z.object({
     ownerName: z.string().min(2),
     email: z.string().email(),
     whatsappNumber: z.string().min(5),
+    address: z.string().optional(),
+    gstNo: z.string().optional(),
+    tagline: z.string().optional(),
     font: z.string().optional(),
     ownerPassword: z.string().min(6),
 });
 
-export const updateBusinessSchema = createBusinessSchema.partial().omit({ ownerPassword: true });
+export const updateBusinessSchema = createBusinessSchema.partial().omit({ ownerPassword: true }).extend({
+    planType: z.enum(['TRIAL', 'BASIC', 'PRO', 'ENTERPRISE']).optional(),
+    trialEndsAt: z.string().datetime().optional().nullable(),
+    planEndsAt: z.string().datetime().optional().nullable(),
+    isActive: z.boolean().optional(),
+});
 
 export const themeSchema = z.object({
     primaryColor: z.string().optional(),

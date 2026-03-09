@@ -36,3 +36,33 @@ export const getSystemLogs = async (
         next(err);
     }
 };
+
+export const listAllApiKeys = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+
+        const result = await adminService.listAllApiKeys(page, limit);
+        sendSuccess(res, result);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const revokeApiKeyGlobally = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const id = req.params['id'] as string;
+        await adminService.revokeApiKeyGlobally(id);
+        sendSuccess(res, null, 'API Key revoked globally');
+    } catch (err) {
+        next(err);
+    }
+};

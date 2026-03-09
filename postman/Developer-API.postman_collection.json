@@ -1,0 +1,176 @@
+{
+    "info": {
+        "_postman_id": "dev-api-collection-id",
+        "name": "Diamond Market - Developer External API",
+        "description": "This collection is for external developers to integrate Diamond Market inventory into their own platforms (Shopify, Custom Apps, etc.).\n\n**Authentication:**\nAll requests require an `x-api-key` header. This key can be generated from the Business Owner Dashboard under the 'Developer Settings' section.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Inventory Management",
+            "item": [
+                {
+                    "name": "List All Diamonds",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/diamonds?page=1&limit=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "diamonds"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "50"
+                                },
+                                {
+                                    "key": "shape",
+                                    "value": "ROUND",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Returns a paginated list of your diamond inventory."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add New Diamond",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"shape\": \"ROUND\",\n    \"carat\": 1.05,\n    \"color\": \"D\",\n    \"clarity\": \"VVS1\",\n    \"price\": 5500,\n    \"cut\": \"EX\",\n    \"polish\": \"EX\",\n    \"symmetry\": \"EX\",\n    \"fluorescence\": \"NON\",\n    \"certificateNumber\": \"1234567890\",\n    \"certificateLab\": \"GIA\",\n    \"uploadMethod\": \"MANUAL\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/diamonds",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "diamonds"
+                            ]
+                        },
+                        "description": "Add a diamond to your inventory programmatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Diamond",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"price\": 5450,\n    \"status\": \"HOLD\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/diamonds/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "diamonds",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "DIAMOND_ID"
+                                }
+                            ]
+                        },
+                        "description": "Update details or status of an existing diamond."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Diamond",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/diamonds/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "diamonds",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "DIAMOND_ID"
+                                }
+                            ]
+                        },
+                        "description": "Remove a diamond from your inventory."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:4000"
+        },
+        {
+            "key": "api_key",
+            "value": "YOUR_API_KEY_HERE"
+        }
+    ]
+}

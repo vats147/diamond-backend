@@ -16,6 +16,19 @@ export const adminLogin = async (
     }
 };
 
+export const login = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const result = await authService.login(req.body);
+        sendSuccess(res, result, 'Login successful');
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const ownerLogin = async (
     req: Request,
     res: Response,

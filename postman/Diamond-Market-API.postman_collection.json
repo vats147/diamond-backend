@@ -160,7 +160,35 @@
                                 }
                             }
                         },
-                        "description": "Business Owner login. Token + businessId auto-saved on success.\n\nRequest body:\n- businessSlug (string, required)\n- email (string, required)\n- password (string, required)\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"token\": \"...\", \"user\": { \"id\": \"...\", \"role\": \"OWNER\", \"businessId\": \"...\" } } }\n```\n\nErrors:\n- 400: Validation failed\n- 401: Invalid credentials\n- 404: Business not found"
+                        "description": "Business Owner login. Token + businessId auto-saved on success.\n\nRequest body:\n- email (string, required)\n- password (string, required)\n- businessSlug (string, optional)\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"token\": \"...\", \"user\": { \"id\": \"...\", \"role\": \"OWNER\", \"businessId\": \"...\" } } }\n```"
+                    }
+                },
+                {
+                    "name": "Unified Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@diamond.com\",\n    \"password\": \"admin123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Unified login endpoint for ALL roles (Super Admin and Business Owner). Automatically detects your role and business association.\n\nAuth: Public"
                     }
                 },
                 {
@@ -770,6 +798,61 @@
                         },
                         "description": "List diamonds with advanced filters and pagination. No auth required.\n\nbusinessId is REQUIRED.\n\nAll filter params are optional. Range filters (min/max), comma-separated exact matches, and string search are supported.\n\nResponse 200:\n```json\n{ \"success\": true, \"data\": { \"diamonds\": [...], \"total\": 120, \"page\": 1, \"limit\": 20, \"totalPages\": 6 } }\n```"
                     }
+                },
+                {
+                    "name": "Global Metadata Management",
+                    "item": [
+                        {
+                            "name": "Get Global Filter Options",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/metadata",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "metadata"
+                                    ]
+                                },
+                                "description": "Get all global filter options (Shades, Lusters, Labs, etc.) for the frontend to build dynamic filter screens.\n\nAuth: Public"
+                            }
+                        },
+                        {
+                            "name": "Update Global Filter Options",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{admin_token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"shades\": [\"N\", \"VLB\", \"BT\", \"LB\", \"OB\", \"GR\", \"YL\", \"BR\", \"More\"],\n    \"lusters\": [\"EX\", \"VG\", \"ML1\", \"ML2\", \"More\"]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/metadata/admin",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "metadata",
+                                        "admin"
+                                    ]
+                                },
+                                "description": "Update global filter options. Any fields not provided will keep their existing values.\n\nAuth: Super Admin only"
+                            }
+                        }
+                    ]
                 },
                 {
                     "name": "Get Diamond by ID",

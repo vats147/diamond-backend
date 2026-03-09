@@ -12,6 +12,7 @@ import storeRoutes from './modules/store/store.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import developerRoutes from './modules/developer/developer.routes';
 import externalRoutes from './modules/external/external.routes';
+import metadataRoutes from './modules/metadata/metadata.routes';
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/api/developer', developerRoutes);
 
 // Public Developer API
 app.use('/api/v1', externalRoutes);
+app.use('/api/metadata', metadataRoutes);
 
 // 404
 app.use((_req, res) => {

@@ -75,3 +75,27 @@ export const getSystemLogs = async (
 
     return { logs, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
+
+export const listAllApiKeys = async (page: number = 1, limit: number = 20) => {
+    const skip = (page - 1) * limit;
+
+    const [keys, total] = await Promise.all([
+        prisma.apiKey.findMany({
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                business: {
+                    select: { name: true, slug: true }
+                }
+            }
+        }),
+        prisma.apiKey.count(),
+    ]);
+
+    return { keys, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+export const revokeApiKeyGlobally = async (keyId: string) => {
+    await prisma.apiKey.delete({ where: { id: keyId } });
+};

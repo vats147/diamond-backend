@@ -15,16 +15,8 @@ const router = Router();
  * @errors 401 Invalid credentials | 400 Validation
  */
 router.post('/admin/login', validate(adminLoginSchema), authController.adminLogin);
-
-/**
- * @route  POST /api/auth/owner/login
- * @desc   Business owner login
- * @access Public
- * @body   { businessSlug, email, password }
- * @returns { success, data: { token, user: { id, role, businessId } } }
- * @errors 401 Invalid credentials | 404 Business not found | 400 Validation
- */
 router.post('/owner/login', validate(ownerLoginSchema), authController.ownerLogin);
+router.post('/login', authController.login);
 
 /**
  * @route  POST /api/auth/logout

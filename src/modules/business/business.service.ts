@@ -20,9 +20,16 @@ export const listBusinesses = async () => {
             email: true,
             contactNumber: true,
             whatsappNumber: true,
+            address: true,
+            gstNo: true,
+            tagline: true,
             logoUrl: true,
             font: true,
             theme: true,
+            planType: true,
+            trialEndsAt: true,
+            planEndsAt: true,
+            isActive: true,
             createdAt: true,
             _count: { select: { diamonds: true } },
         },
@@ -63,6 +70,9 @@ export const createBusiness = async (
         logoUrl = await uploadToCloudinary(logoBuffer, 'businesses/logos');
     }
 
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+
     const business = await prisma.business.create({
         data: {
             name: input.name,
@@ -71,8 +81,14 @@ export const createBusiness = async (
             ownerName: input.ownerName,
             email: input.email,
             whatsappNumber: input.whatsappNumber,
+            address: input.address,
+            gstNo: input.gstNo,
+            tagline: input.tagline,
             font: input.font,
             logoUrl,
+            planType: 'TRIAL',
+            trialEndsAt,
+            isActive: true,
         },
     });
 
@@ -136,6 +152,7 @@ export const createOwnerUser = async (businessId: string, input: CreateOwnerUser
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw Object.assign(new Error('User with that email already exists'), { statusCode: 409 });
     const passwordHash = await bcrypt.hash(input.password, 12);
+    // TODO: Send email
     return prisma.user.create({
         data: {
             email: input.email,
@@ -145,4 +162,28 @@ export const createOwnerUser = async (businessId: string, input: CreateOwnerUser
         },
         select: { id: true, email: true, role: true, businessId: true, createdAt: true },
     });
+};
+
+export const removeUser = async (businessId: string, userId: string, actingUser: any) => {
+    // Basic authorization checking
+    if (actingUser.role !== 'SUPER_ADMIN') {
+        if (actingUser.businessId !== businessId || actingUser.role !== 'OWNER') {
+            throw Object.assign(new Error('Unauthorized'), { statusCode: 403 });
+        }
+    }
+
+    // Check if the business has at least one other OWNER user to prevent locking out
+    const ownerCount = await prisma.user.count({ where: { businessId, role: 'OWNER' } });
+
+    // Check if the user being removed is the last owner
+    const targetUser = await prisma.user.findUnique({ where: { id: userId, businessId } });
+    if (!targetUser) {
+        throw Object.assign(new Error('User not found in this business'), { statusCode: 404 });
+    }
+
+    if (ownerCount <= 1 && targetUser.role === 'OWNER') {
+        throw Object.assign(new Error('Cannot remove the last owner of a business'), { statusCode: 400 });
+    }
+
+    await prisma.user.delete({ where: { id: userId, businessId } });
 };

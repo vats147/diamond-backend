@@ -3,45 +3,53 @@ import prisma from '../../config/db';
 import { signToken } from '../../config/jwt';
 import { AdminLoginInput, OwnerLoginInput } from './auth.schema';
 
-export const adminLogin = async (input: AdminLoginInput) => {
+/**
+ * Unified login that handles both SUPER_ADMIN and OWNER roles
+ */
+export const login = async (input: { email: string; password?: string }) => {
     const user = await prisma.user.findUnique({
         where: { email: input.email },
+        include: { business: { select: { id: true, slug: true, isActive: true } } }
     });
-    if (!user || user.role !== 'SUPER_ADMIN') {
-        throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
-    }
-    const valid = await bcrypt.compare(input.password, user.passwordHash);
-    if (!valid) {
-        throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
-    }
 
-    const token = signToken({ sub: user.id, role: 'SUPER_ADMIN' });
-    return { token, user: { id: user.id, role: user.role } };
-};
-
-export const ownerLogin = async (input: OwnerLoginInput) => {
-    const business = await prisma.business.findUnique({
-        where: { slug: input.businessSlug },
-    });
-    if (!business) {
-        throw Object.assign(new Error('Business not found'), { statusCode: 404 });
-    }
-
-    const user = await prisma.user.findFirst({
-        where: { email: input.email, businessId: business.id, role: 'OWNER' },
-    });
     if (!user) {
         throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
     }
 
-    const valid = await bcrypt.compare(input.password, user.passwordHash);
-    if (!valid) {
-        throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
+    // Block login if the business is inactive
+    if (user.role === 'OWNER' && user.business?.isActive === false) {
+        throw Object.assign(new Error('This business account has been deactivated. Please contact support.'), { statusCode: 403 });
     }
 
-    const token = signToken({ sub: user.id, role: 'OWNER', businessId: business.id });
+    if (input.password) {
+        const valid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!valid) {
+            throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
+        }
+    }
+
+    const payload: any = { sub: user.id, role: user.role };
+    if (user.role === 'OWNER' && user.businessId) {
+        payload.businessId = user.businessId;
+    }
+
+    const token = signToken(payload);
+
     return {
         token,
-        user: { id: user.id, role: user.role, businessId: business.id },
+        user: {
+            id: user.id,
+            role: user.role,
+            email: user.email,
+            ...(user.businessId && { businessId: user.businessId, businessSlug: user.business?.slug })
+        }
     };
+};
+
+export const adminLogin = async (input: AdminLoginInput) => {
+    return login(input);
+};
+
+export const ownerLogin = async (input: OwnerLoginInput) => {
+    return login(input);
 };

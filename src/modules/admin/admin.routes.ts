@@ -27,4 +27,18 @@ router.get('/metrics', ctrl.getDashboardMetrics);
  */
 router.get('/logs', ctrl.getSystemLogs);
 
+/**
+ * @route  GET /api/admin/developer/keys
+ * @desc   List all API keys in the system across all businesses
+ * @access Super Admin
+ */
+router.get('/developer/keys', ctrl.listAllApiKeys);
+
+/**
+ * @route  DELETE /api/admin/developer/keys/:id
+ * @desc   Revoke any API key globally
+ * @access Super Admin
+ */
+router.delete('/developer/keys/:id', ctrl.revokeApiKeyGlobally);
+
 export default router;
