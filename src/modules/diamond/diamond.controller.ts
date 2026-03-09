@@ -19,10 +19,10 @@ export const getDiamondById = async (req: Request, res: Response, next: NextFunc
     } catch (err) { next(err); }
 };
 
-export const createDiamond = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const createDiamond = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const files = (req.files as MulterFiles) || {};
-        const data = await diamondService.createDiamond(req.body, {
+        const data = await diamondService.createDiamond(req.body, req.user?.sub, {
             images: files['images'],
             video: files['video'],
             certificateFile: files['certificateFile'],
@@ -38,6 +38,7 @@ export const updateDiamond = async (req: AuthRequest, res: Response, next: NextF
             String(req.params['id']),
             req.user!.businessId || '',
             req.user!.role,
+            req.user?.sub,
             req.body,
             {
                 images: files['images'],

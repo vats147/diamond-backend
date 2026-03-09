@@ -165,6 +165,7 @@ export const getDiamondById = async (id: string) => {
 
 export const createDiamond = async (
     input: CreateDiamondInput,
+    userId: string | undefined,
     files: {
         images?: Express.Multer.File[];
         video?: Express.Multer.File[];
@@ -211,6 +212,8 @@ export const createDiamond = async (
             images: imageUrls,
             videoUrl,
             uploadMethod: input.uploadMethod as UploadMethod,
+            createdBy: userId,
+            updatedBy: userId,
         },
     });
 
@@ -239,6 +242,7 @@ export const updateDiamond = async (
     id: string,
     businessId: string,
     role: string,
+    userId: string | undefined,
     input: UpdateDiamondInput,
     files: {
         images?: Express.Multer.File[];
@@ -282,6 +286,7 @@ export const updateDiamond = async (
             ...(imageUrls.length > 0 && { images: imageUrls }),
             ...(videoUrl && { videoUrl }),
             ...(certificateFileUrl && { certificateFileUrl }),
+            updatedBy: userId,
         },
     });
 

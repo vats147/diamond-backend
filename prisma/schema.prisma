@@ -31,6 +31,10 @@ model Business {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  deletedAt      DateTime?
+  createdBy      String?   @db.ObjectId
+  updatedBy      String?   @db.ObjectId
+
   users     User[]
   diamonds  Diamond[]
   inquiries Inquiry[]
@@ -49,6 +53,10 @@ model User {
   business     Business? @relation(fields: [businessId], references: [id])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  deletedAt    DateTime?
+  createdBy    String?   @db.ObjectId
+  updatedBy    String?   @db.ObjectId
 }
 
 enum Role {
@@ -124,6 +132,10 @@ model Diamond {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
+  deletedAt          DateTime?
+  createdBy          String?         @db.ObjectId
+  updatedBy          String?         @db.ObjectId
+
   inquiries          Inquiry[]
 }
 
@@ -163,6 +175,10 @@ model Inquiry {
   phone      String?
   message    String
   createdAt  DateTime @default(now())
+
+  deletedAt  DateTime?
+  createdBy  String?   @db.ObjectId
+  updatedBy  String?   @db.ObjectId
 }
 
 // ─────────────────────────────────────
@@ -192,6 +208,10 @@ model ApiKey {
   business   Business @relation(fields: [businessId], references: [id])
   lastUsedAt DateTime?
   createdAt  DateTime @default(now())
+
+  deletedAt  DateTime?
+  createdBy  String?   @db.ObjectId
+  updatedBy  String?   @db.ObjectId
 }
 
 // ─────────────────────────────────────
@@ -206,6 +226,10 @@ model Metadata {
   config          Json?
 
   updatedAt       DateTime @updatedAt
+
+  deletedAt       DateTime?
+  createdBy       String?   @db.ObjectId
+  updatedBy       String?   @db.ObjectId
 }
 
 
