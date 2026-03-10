@@ -45,3 +45,9 @@ export const ownerLogin = async (
 export const logout = (_req: Request, res: Response): void => {
     sendSuccess(res, null, 'Logged out successfully');
 };
+
+export const verifyAuth = (req: Request, res: Response): void => {
+    // If it reaches here, the authenticate middleware has already verified the token
+    // and ensured the user is active in the database.
+    sendSuccess(res, null, 'Token is valid');
+};

@@ -26,4 +26,11 @@ router.post('/login', authController.login);
  */
 router.post('/logout', authenticate, authController.logout);
 
+/**
+ * @route  GET /api/auth/verify
+ * @desc   Verify token is still active
+ * @access Protected
+ */
+router.get('/verify', authenticate, authController.verifyAuth);
+
 export default router;

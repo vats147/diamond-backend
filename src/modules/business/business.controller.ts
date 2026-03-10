@@ -78,6 +78,31 @@ export const removeUser = async (req: Request, res: Response, next: NextFunction
     } catch (err) { next(err); }
 };
 
+export const getBusinessUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = await businessService.getBusinessUsers(String(req.params['id']));
+        sendSuccess(res, data);
+    } catch (err) { next(err); }
+};
+
+export const toggleUserStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const actingUser = (req as any).user;
+        const { isActive } = req.body;
+        const data = await businessService.toggleUserStatus(String(req.params['id']), String(req.params['userId']), isActive, actingUser);
+        sendSuccess(res, data, isActive ? 'User access restored' : 'User access revoked');
+    } catch (err) { next(err); }
+};
+
+export const resetUserPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const actingUser = (req as any).user;
+        const { newPassword } = req.body;
+        const data = await businessService.resetUserPassword(String(req.params['id']), String(req.params['userId']), newPassword, actingUser);
+        sendSuccess(res, data, 'Password reset successfully');
+    } catch (err) { next(err); }
+};
+
 export const checkSlugAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     console.log('DEBUG: checkSlugAvailability called with slug:', req.params['slug']);
     try {

@@ -46,9 +46,11 @@ model Business {
 // ─────────────────────────────────────
 model User {
   id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  name         String?
   email        String    @unique
   passwordHash String
   role         Role      @default(OWNER)
+  isActive     Boolean   @default(true)
   businessId   String?   @db.ObjectId
   business     Business? @relation(fields: [businessId], references: [id])
   createdAt    DateTime  @default(now())

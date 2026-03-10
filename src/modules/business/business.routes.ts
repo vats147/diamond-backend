@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/role.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { upload } from '../../middleware/upload.middleware';
@@ -8,6 +8,8 @@ import {
     updateBusinessSchema,
     themeSchema,
     createOwnerUserSchema,
+    updateUserStatusSchema,
+    resetUserPasswordSchema
 } from './business.schema';
 import * as ctrl from './business.controller';
 
@@ -17,7 +19,18 @@ router.get('/check-slug/:slug', ctrl.checkSlugAvailability);
 router.get('/', authenticate, requireRole('SUPER_ADMIN'), ctrl.listBusinesses);
 
 /**
+ * @route  GET /api/businesses/:id
+ * @desc   Get business by ID
+ * @access Super Admin
+ */
+router.get('/:id', authenticate, requireRole('SUPER_ADMIN'), ctrl.getBusinessById);
+
+/**
  * @route  GET /api/businesses/slug/:slug/branding
+ * @desc   Get branding data for a business slug
+ * @access Public
+ */
+router.get('/slug/:slug/branding', optionalAuthenticate, ctrl.getBranding);
 
 /**
  * @route  POST /api/businesses
@@ -73,6 +86,18 @@ router.delete('/:id', authenticate, requireRole('SUPER_ADMIN'), ctrl.deleteBusin
 router.put('/:id/theme', authenticate, requireRole('SUPER_ADMIN'), validate(themeSchema), ctrl.setTheme);
 
 /**
+ * @route  GET /api/businesses/:id/users
+ * @desc   Get all users for a business
+ * @access Super Admin
+ */
+router.get(
+    '/:id/users',
+    authenticate,
+    requireRole('SUPER_ADMIN'),
+    ctrl.getBusinessUsers
+);
+
+/**
  * @route  POST /api/businesses/:id/users
  * @desc   Create an owner login account for a business
  * @access Super Admin
@@ -86,6 +111,30 @@ router.post(
     requireRole('SUPER_ADMIN'), // TODO: Also allow Business OWNER to manage their own users
     validate(createOwnerUserSchema),
     ctrl.createOwnerUser
+);
+
+/**
+ * @route  PUT /api/businesses/:id/users/:userId/status
+ * @desc   Toggle user access status
+ * @access Super Admin
+ */
+router.put(
+    '/:id/users/:userId/status',
+    authenticate,
+    validate(updateUserStatusSchema),
+    ctrl.toggleUserStatus
+);
+
+/**
+ * @route  PUT /api/businesses/:id/users/:userId/password
+ * @desc   Reset user password
+ * @access Super Admin
+ */
+router.put(
+    '/:id/users/:userId/password',
+    authenticate,
+    validate(resetUserPasswordSchema),
+    ctrl.resetUserPassword
 );
 
 /**

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/role.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { upload } from '../../middleware/upload.middleware';
@@ -17,7 +17,7 @@ const router = Router();
  * @returns { success, data: { diamonds[], total, page, limit, totalPages } }
  * @errors 400 Missing businessId
  */
-router.get('/', ctrl.listDiamonds);
+router.get('/', optionalAuthenticate, ctrl.listDiamonds);
 
 /**
  * @route  POST /api/diamonds/fetch-by-certificate
@@ -49,6 +49,34 @@ router.post(
     requireRole('OWNER', 'SUPER_ADMIN'),
     upload.single('certificate'),
     ctrl.extractCertificate
+);
+
+/**
+ * @route  POST /api/diamonds/seed
+ * @desc   Seed 5 dummy diamonds for the logged-in owner's business
+ * @access Owner
+ * @returns { success, data }
+ */
+router.post(
+    '/seed',
+    authenticate,
+    requireRole('OWNER'),
+    ctrl.seedDiamonds
+);
+
+/**
+ * @route  POST /api/diamonds/bulk-upload
+ * @desc   Upload an Excel/CSV file to bulk insert diamonds
+ * @access Owner | Super Admin
+ * @body   multipart/form-data { file: file }
+ * @returns { success, data: { insertedCount, failedCount, errors } }
+ */
+router.post(
+    '/bulk-upload',
+    authenticate,
+    requireRole('OWNER', 'SUPER_ADMIN'),
+    upload.single('file'),
+    ctrl.bulkUpload
 );
 
 /**

@@ -79,3 +79,31 @@ export const extractCertificate = async (req: Request, res: Response, next: Next
         sendSuccess(res, data);
     } catch (err) { next(err); }
 };
+
+export const seedDiamonds = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.user?.businessId) {
+            res.status(400).json({ success: false, error: 'User does not belong to a business' });
+            return;
+        }
+        const data = await diamondService.seedDiamonds(req.user.businessId, req.user.sub);
+        sendSuccess(res, data, 'Successfully seeded 5 dummy diamonds');
+    } catch (err) { next(err); }
+};
+
+export const bulkUpload = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file) {
+            res.status(400).json({ success: false, error: 'No file uploaded. Please provide an .xlsx or .csv file.' });
+            return;
+        }
+        if (!req.user?.businessId) {
+            res.status(400).json({ success: false, error: 'User does not belong to a business' });
+            return;
+        }
+
+        const data = await diamondService.bulkUploadDiamonds(req.user.businessId, file.buffer, req.user.sub);
+        sendSuccess(res, data, `Successfully processed bulk upload`);
+    } catch (err) { next(err); }
+};

@@ -16,6 +16,10 @@ export const login = async (input: { email: string; password?: string }) => {
         throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 });
     }
 
+    if (!user.isActive) {
+        throw Object.assign(new Error('This user account has been deactivated. Please contact support.'), { statusCode: 403 });
+    }
+
     // Block login if the business is inactive
     if (user.role === 'OWNER' && user.business?.isActive === false) {
         throw Object.assign(new Error('This business account has been deactivated. Please contact support.'), { statusCode: 403 });
@@ -28,7 +32,7 @@ export const login = async (input: { email: string; password?: string }) => {
         }
     }
 
-    const payload: any = { sub: user.id, role: user.role };
+    const payload: any = { sub: user.id, role: user.role, name: user.name };
     if (user.role === 'OWNER' && user.businessId) {
         payload.businessId = user.businessId;
     }
@@ -39,6 +43,7 @@ export const login = async (input: { email: string; password?: string }) => {
         token,
         user: {
             id: user.id,
+            name: user.name,
             role: user.role,
             email: user.email,
             ...(user.businessId && { businessId: user.businessId, businessSlug: user.business?.slug })

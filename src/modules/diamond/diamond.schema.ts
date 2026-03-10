@@ -44,6 +44,10 @@ export const createDiamondSchema = z.object({
     location: z.string().optional(),
     earlyBird: z.string().optional(),
 
+    // Media
+    images: z.array(z.string().url()).optional().default([]),
+    videoUrl: z.string().url().optional().or(z.literal('')),
+
     certificateNumber: z.string().optional(),
     certificateLab: z.enum(['GIA', 'IGI', 'HRD', 'AGS', 'JOB', 'GSI', 'OTHER']).optional(),
     uploadMethod: z.enum(['CERTIFICATE_ID', 'CERTIFICATE_FILE', 'MANUAL']).default('MANUAL'),

@@ -6,6 +6,7 @@ import { fetchGIACertificate, fetchIGICertificate } from './certificate.service'
 import { extractCertificateData } from './ocr.service';
 import { CertificateLab, UploadMethod, DiamondStatus } from '@prisma/client';
 import redisClient, { getBusinessDiamondsCacheKey, getStorefrontCacheKey } from '../../config/redis';
+import * as xlsx from 'xlsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -316,4 +317,190 @@ export const fetchByCertificate = async (input: FetchByCertificateInput) => {
 
 export const extractCertificate = async (file: Express.Multer.File) => {
     return extractCertificateData(file.buffer, file.mimetype);
+};
+
+export const seedDiamonds = async (businessId: string, userId?: string) => {
+    const dummies = [
+        {
+            shape: 'ROUND', carat: 1.05, color: 'D', clarity: 'FL', cut: 'EX', polish: 'EX', symmetry: 'EX',
+            price: 6500, status: DiamondStatus.AVAILABLE, certificateLab: CertificateLab.GIA,
+            certificateNumber: '1234567890', fluorescence: 'NONE', measurements: '6.50 - 6.54 x 4.02 mm',
+            images: ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
+            videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        {
+            shape: 'OVAL', carat: 2.10, color: 'G', clarity: 'VS1', cut: 'VG', polish: 'EX', symmetry: 'VG',
+            price: 12400, status: DiamondStatus.AVAILABLE, certificateLab: CertificateLab.IGI,
+            certificateNumber: '9876543210', fluorescence: 'FAINT', measurements: '10.20 x 7.30 x 4.50 mm',
+            images: [], videoUrl: null
+        },
+        {
+            shape: 'EMERALD', carat: 1.50, color: 'E', clarity: 'VVS2', cut: 'EX', polish: 'EX', symmetry: 'EX',
+            price: 8900, status: DiamondStatus.HOLD, certificateLab: CertificateLab.HRD,
+            certificateNumber: '456123789', fluorescence: 'MEDIUM', measurements: '7.80 x 5.60 x 3.80 mm',
+            images: [], videoUrl: null
+        },
+        {
+            shape: 'PEAR', carat: 0.90, color: 'F', clarity: 'SI1', cut: 'G', polish: 'VG', symmetry: 'G',
+            price: 3200, status: DiamondStatus.AVAILABLE, certificateLab: CertificateLab.GIA,
+            certificateNumber: 'GIA-PEAR-999', fluorescence: 'STRONG', measurements: '8.10 x 5.20 x 3.10 mm',
+            images: [], videoUrl: null
+        },
+        {
+            shape: 'RADIANT', carat: 3.02, color: 'J', clarity: 'VS2', cut: 'EX', polish: 'VG', symmetry: 'EX',
+            price: 24500, status: DiamondStatus.SOLD, certificateLab: CertificateLab.IGI,
+            certificateNumber: 'IGI-RAD-302', fluorescence: 'NONE', measurements: '9.50 x 8.20 x 5.40 mm',
+            images: [], videoUrl: null
+        }
+    ];
+
+    const results = await Promise.all(dummies.map(d => prisma.diamond.create({
+        data: {
+            ...d,
+            businessId,
+            uploadMethod: UploadMethod.MANUAL,
+            createdBy: userId,
+            updatedBy: userId
+        }
+    })));
+
+    const business = await prisma.business.findUnique({ where: { id: businessId }, select: { slug: true } });
+    invalidateBusinessCache(businessId, business?.slug);
+
+    return results;
+};
+
+export const bulkUploadDiamonds = async (businessId: string, fileBuffer: Buffer, userId?: string) => {
+    // 1. Read the excel/csv file
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    // Convert to 2D array first to find the header row
+    const dataAOA = xlsx.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+
+    // Find the row that contains our headers (SHAPE, WEIGHT, etc.)
+    let headerRowIndex = 0;
+    const requiredKeywords = ['SHAPE', 'WEIGHT', 'CARAT', 'COLOR', 'CLARITY'];
+
+    for (let i = 0; i < Math.min(dataAOA.length, 20); i++) {
+        const row = dataAOA[i];
+        if (!Array.isArray(row)) continue;
+
+        const matches = row.filter(cell =>
+            cell && requiredKeywords.some(kw => cell.toString().toUpperCase().includes(kw))
+        ).length;
+
+        if (matches >= 3) {
+            headerRowIndex = i;
+            break;
+        }
+    }
+
+    // Convert to JSON using the found header row
+    const rawData = xlsx.utils.sheet_to_json<Record<string, any>>(worksheet, {
+        range: headerRowIndex,
+        defval: null
+    });
+
+    const errors: { row: number, error: string }[] = [];
+    const validDiamonds: any[] = [];
+
+    // Normalizing keys to match our column matching logic
+    const normalizeKey = (key: string) => key?.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+
+    for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+
+        // Skip empty rows
+        if (!row || Object.values(row).every(v => v === null || v === undefined || v === '')) {
+            continue;
+        }
+
+        const extractVal = (...possibleKeys: string[]) => {
+            const normalizedPossible = possibleKeys.map(normalizeKey);
+            for (const key of Object.keys(row)) {
+                if (normalizedPossible.includes(normalizeKey(key))) {
+                    const val = row[key];
+                    if (val === null || val === undefined) return undefined;
+                    return val.toString().trim() || undefined;
+                }
+            }
+            return undefined;
+        };
+
+        const shape = extractVal('shape');
+        const caratStr = extractVal('weight', 'carat', 'crt');
+        const color = extractVal('color', 'col');
+        const clarity = extractVal('clarity', 'cla');
+        const cut = extractVal('cut');
+        const polish = extractVal('polish', 'pol');
+        const symmetry = extractVal('symmetry', 'sym');
+        const fluorescence = extractVal('fl', 'fluor', 'fluorescence', 'fluorosence');
+        const measurements = extractVal('measurements', 'measurement', 'size');
+        const depth = extractVal('depth', 'depthpercent', 'depthperc');
+        const table = extractVal('table', 'tablepercent', 'tableperc');
+        const report = extractVal('report', 'certificate', 'cert', 'certificateno');
+        const video = extractVal('diamondvideo', 'video', 'videolink', 'videourl');
+
+        const rowNumber = i + 2; // +1 for 0-index, +1 for header
+
+        if (!shape || !caratStr || !color || !clarity) {
+            errors.push({ row: rowNumber, error: 'Missing required fields (Shape, Weight, Color, or Clarity)' });
+            continue;
+        }
+
+        const carat = parseFloat(caratStr);
+        if (isNaN(carat)) {
+            errors.push({ row: rowNumber, error: 'Invalid Carat Weight' });
+            continue;
+        }
+
+        let certLab: CertificateLab = CertificateLab.OTHER;
+        if (report?.toUpperCase().startsWith('GIA')) certLab = CertificateLab.GIA;
+        else if (report?.toUpperCase().startsWith('IGI') || report?.toUpperCase().startsWith('LG')) certLab = CertificateLab.IGI;
+        else if (report?.toUpperCase().startsWith('HRD')) certLab = CertificateLab.HRD;
+        else if (extractVal('lab')?.toUpperCase() === 'GIA') certLab = CertificateLab.GIA;
+        else if (extractVal('lab')?.toUpperCase() === 'IGI') certLab = CertificateLab.IGI;
+
+        // Price parsing, some sheets might have price, default 0
+        const priceStr = extractVal('price', 'rate', 'amount');
+        const price = priceStr ? parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0 : 0;
+
+        validDiamonds.push({
+            businessId,
+            shape: shape.toUpperCase(),
+            carat,
+            color: color.toUpperCase(),
+            clarity: clarity.toUpperCase(),
+            cut: cut?.toUpperCase() || null,
+            polish: polish?.toUpperCase() || null,
+            symmetry: symmetry?.toUpperCase() || null,
+            fluorescence: fluorescence?.toUpperCase() || null,
+            measurements: measurements || null,
+            depthPercentage: depth ? parseFloat(depth) : null,
+            tablePercentage: table ? parseFloat(table) : null,
+            certificateNumber: report || null,
+            certificateLab: report ? certLab : null,
+            videoUrl: video || null,
+            price,
+            uploadMethod: UploadMethod.MANUAL,
+            status: DiamondStatus.AVAILABLE,
+            createdBy: userId,
+            updatedBy: userId,
+        });
+    }
+
+    if (validDiamonds.length > 0) {
+        await prisma.diamond.createMany({ data: validDiamonds });
+
+        const business = await prisma.business.findUnique({ where: { id: businessId }, select: { slug: true } });
+        invalidateBusinessCache(businessId, business?.slug);
+    }
+
+    return {
+        insertedCount: validDiamonds.length,
+        failedCount: errors.length,
+        errors
+    };
 };

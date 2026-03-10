@@ -28,11 +28,22 @@ export const themeSchema = z.object({
 });
 
 export const createOwnerUserSchema = z.object({
+    name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
+});
+
+export const updateUserStatusSchema = z.object({
+    isActive: z.boolean(),
+});
+
+export const resetUserPasswordSchema = z.object({
+    newPassword: z.string().min(6),
 });
 
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>;
 export type UpdateBusinessInput = z.infer<typeof updateBusinessSchema>;
 export type ThemeInput = z.infer<typeof themeSchema>;
 export type CreateOwnerUserInput = z.infer<typeof createOwnerUserSchema>;
+export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
+export type ResetUserPasswordInput = z.infer<typeof resetUserPasswordSchema>;

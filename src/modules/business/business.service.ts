@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import prisma from '../../config/db';
 import { uploadToCloudinary } from '../../config/cloudinary';
 import { slugify } from '../../utils/slugify';
+import { sendInvitationEmail, sendPasswordResetNotification } from '../../utils/email';
 import {
     CreateBusinessInput,
     UpdateBusinessInput,
@@ -103,12 +104,22 @@ export const createBusiness = async (
     const passwordHash = await bcrypt.hash(input.ownerPassword, 12);
     await prisma.user.create({
         data: {
+            name: input.ownerName,
             email: input.email,
             passwordHash,
             role: 'OWNER',
             businessId: business.id,
         },
     });
+
+    // Send invitation email
+    await sendInvitationEmail({
+        email: input.email,
+        password: input.ownerPassword,
+        role: 'OWNER',
+        ownerName: input.ownerName,
+        businessName: input.name,
+    }).catch(err => console.error('Failed to send business invitation email:', err));
 
     return business;
 };
@@ -159,16 +170,36 @@ export const createOwnerUser = async (businessId: string, input: CreateOwnerUser
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw Object.assign(new Error('User with that email already exists'), { statusCode: 409 });
     const passwordHash = await bcrypt.hash(input.password, 12);
-    // TODO: Send email
-    return prisma.user.create({
+
+    const newUser = await prisma.user.create({
         data: {
+            name: input.name,
             email: input.email,
             passwordHash,
             role: 'OWNER',
+            isActive: true,
             businessId,
         },
-        select: { id: true, email: true, role: true, businessId: true, createdAt: true },
+        select: { id: true, name: true, email: true, role: true, businessId: true, isActive: true, createdAt: true },
     });
+
+    // Send invitation email
+    await sendInvitationEmail({
+        email: input.email,
+        password: input.password,
+        role: 'OWNER',
+        // We could fetch business name here if needed, but for now we use a generic template if ownerName/businessName is missing
+    }).catch(err => console.error('Failed to send user invitation email:', err));
+
+    return newUser;
+};
+
+export const getBusinessUsers = async (businessId: string) => {
+    const users = await prisma.user.findMany({
+        where: { businessId },
+        select: { id: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true }
+    });
+    return users;
 };
 
 export const removeUser = async (businessId: string, userId: string, actingUser: any) => {
@@ -195,7 +226,60 @@ export const removeUser = async (businessId: string, userId: string, actingUser:
     await prisma.user.delete({ where: { id: userId, businessId } });
 };
 
+export const toggleUserStatus = async (businessId: string, userId: string, isActive: boolean, actingUser: any) => {
+    if (actingUser.role !== 'SUPER_ADMIN' && actingUser.businessId !== businessId) {
+        throw Object.assign(new Error('Unauthorized'), { statusCode: 403 });
+    }
+
+    // Prevent blocking the last owner (TEMPORARILY DISABLED FOR TESTING)
+    /*
+    if (!isActive) {
+        const targetUser = await prisma.user.findUnique({ where: { id: userId, businessId } });
+        if (targetUser?.role === 'OWNER') {
+            const ownerCount = await prisma.user.count({ where: { businessId, role: 'OWNER', isActive: true } });
+            if (ownerCount <= 1) {
+                throw Object.assign(new Error('Cannot deactivate the last active owner of a business'), { statusCode: 400 });
+            }
+        }
+    }
+    */
+
+    return prisma.user.update({
+        where: { id: userId, businessId },
+        data: { isActive },
+        select: { id: true, email: true, isActive: true }
+    });
+};
+
+export const resetUserPassword = async (businessId: string, userId: string, newPassword: string, actingUser: any) => {
+    if (actingUser.role !== 'SUPER_ADMIN' && actingUser.businessId !== businessId) {
+        throw Object.assign(new Error('Unauthorized'), { statusCode: 403 });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+        where: { id: userId, businessId },
+        include: { business: true }
+    });
+
+    if (!targetUser) throw Object.assign(new Error('User not found'), { statusCode: 404 });
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+        where: { id: userId, businessId },
+        data: { passwordHash }
+    });
+
+    // Send password reset notification
+    await sendPasswordResetNotification({
+        email: targetUser.email,
+        newPassword,
+        businessName: targetUser.business?.name || 'Diamond Market',
+    }).catch(err => console.error('Failed to send password reset email:', err));
+
+    return { success: true };
+};
+
 export const checkSlugAvailability = async (slug: string) => {
-    const existing = await prisma.business.findUnique({ where: { slug } });
+    const existing = await prisma.business.findFirst({ where: { slug } });
     return !existing;
 };
