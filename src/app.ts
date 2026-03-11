@@ -1,76 +1,133 @@
-import express from 'express';
-import cors from 'cors';
-import { env } from './config/env';
-import { requestLogger } from './middleware/logger.middleware';
-import { errorHandler } from './middleware/errorHandler.middleware';
+import express from "express";
+import cors from "cors";
+import { env } from "./config/env";
+import { requestLogger } from "./middleware/logger.middleware";
+import { errorHandler } from "./middleware/errorHandler.middleware";
 
-import authRoutes from './modules/auth/auth.routes';
-import businessRoutes from './modules/business/business.routes';
-import diamondRoutes from './modules/diamond/diamond.routes';
-import inquiryRoutes from './modules/inquiry/inquiry.routes';
-import storeRoutes from './modules/store/store.routes';
-import adminRoutes from './modules/admin/admin.routes';
-import developerRoutes from './modules/developer/developer.routes';
-import externalRoutes from './modules/external/external.routes';
-import metadataRoutes from './modules/metadata/metadata.routes';
+import authRoutes from "./modules/auth/auth.routes";
+import businessRoutes from "./modules/business/business.routes";
+import diamondRoutes from "./modules/diamond/diamond.routes";
+import inquiryRoutes from "./modules/inquiry/inquiry.routes";
+import storeRoutes from "./modules/store/store.routes";
+import adminRoutes from "./modules/admin/admin.routes";
+import developerRoutes from "./modules/developer/developer.routes";
+import externalRoutes from "./modules/external/external.routes";
+import metadataRoutes from "./modules/metadata/metadata.routes";
 
 const app = express();
 
+// ─────────────────────────────────────────────────────────────────────────────
 // CORS
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, postman)
-        if (!origin) return callback(null, true);
+// ─────────────────────────────────────────────────────────────────────────────
 
-        // Allow all local network standard IPs (192.168.*.* or localhost)
-        if (/^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) {
-            return callback(null, true);
-        }
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // No origin header = curl / Postman / mobile apps → always allow
+    if (!origin) return callback(null, true);
 
-        // Check against FRONTEND_URL if set
-        const allowedOrigins = env.FRONTEND_URL === '*' ? ['*'] : env.FRONTEND_URL.split(',');
-        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
+    // Development: allow every origin without restriction
+    if (env.NODE_ENV === "development") return callback(null, true);
 
-        callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-}));
+    // Any localhost / 127.0.0.1 / 192.168.x.x on any port (staging / LAN testing)
+    if (
+      /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
+        origin,
+      )
+    ) {
+      return callback(null, true);
+    }
 
-// Body parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    // Wildcard configured → allow all
+    if (env.FRONTEND_URL === "*") return callback(null, true);
 
-// Request logger (console + DB)
+    // Production: match against comma-separated FRONTEND_URL whitelist
+    const allowed = env.FRONTEND_URL.split(",")
+      .map((u) => u.trim())
+      .filter(Boolean);
+    if (allowed.includes(origin)) return callback(null, true);
+
+    // Rejected – return a plain error string so cors sets the right status
+    callback(new Error(`CORS policy: origin "${origin}" is not allowed`));
+  },
+
+  credentials: true,
+
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-api-key",
+    "X-Requested-With",
+    "Accept",
+  ],
+
+  // Expose Content-Disposition so browsers can read download filenames
+  exposedHeaders: ["Content-Disposition"],
+
+  // Cache preflight response for 10 minutes
+  maxAge: 600,
+};
+
+
+
+// Apply CORS headers to all subsequent requests
+app.use(cors(corsOptions));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BODY PARSERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REQUEST LOGGER
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(requestLogger);
 
-// Health check
-app.get('/health', (_req, res) => {
-    res.json({ success: true, message: 'Diamond Market API is running', timestamp: new Date() });
+// ─────────────────────────────────────────────────────────────────────────────
+// HEALTH CHECK
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get("/health", (_req, res) => {
+  res.json({
+    success: true,
+    message: "Diamond Market API is running",
+    timestamp: new Date(),
+    env: env.NODE_ENV,
+  });
 });
 
-// Routes
-console.log('\n\n🚀 [DEBUG] STARTING ROUTE MOUNTING...\n\n');
-app.use('/api/auth', authRoutes);
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
 
-app.use('/api/businesses', businessRoutes);
-app.use('/api/diamonds', diamondRoutes);
-app.use('/api/inquiries', inquiryRoutes);
-app.use('/api/store', storeRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/developer', developerRoutes);
+console.log("\n\n🚀 [DEBUG] STARTING ROUTE MOUNTING...\n\n");
 
-// Public Developer API
-app.use('/api/v1', externalRoutes);
-app.use('/api/metadata', metadataRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/businesses", businessRoutes);
+app.use("/api/diamonds", diamondRoutes);
+app.use("/api/inquiries", inquiryRoutes);
+app.use("/api/store", storeRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/developer", developerRoutes);
+app.use("/api/v1", externalRoutes);
+app.use("/api/metadata", metadataRoutes);
 
+// ─────────────────────────────────────────────────────────────────────────────
 // 404
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use((_req, res) => {
-    res.status(404).json({ success: false, error: 'Route not found' });
+  res.status(404).json({ success: false, error: "Route not found" });
 });
 
-// Global Error Handler
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBAL ERROR HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(errorHandler);
 
 export default app;

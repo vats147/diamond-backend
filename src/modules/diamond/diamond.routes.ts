@@ -8,16 +8,14 @@ import * as ctrl from './diamond.controller';
 
 const router = Router();
 
-/**
- * @route  GET /api/diamonds
- * @desc   List diamonds with filters + pagination
- * @access Public (storefront) or Owner (management)
- * @query  businessId (required), shape, colorMin, colorMax, caratMin, caratMax,
- *         clarities, priceMin, priceMax, lab, search, page, limit, sortBy, sortOrder
- * @returns { success, data: { diamonds[], total, page, limit, totalPages } }
- * @errors 400 Missing businessId
- */
 router.get('/', optionalAuthenticate, ctrl.listDiamonds);
+
+/**
+ * @route  GET /api/diamonds/certificate/:lab/:certNo
+ * @desc   Proxy download of diamond certificate PDF
+ * @access Public
+ */
+router.get('/certificate/:lab/:certNo', ctrl.downloadCertificate);
 
 /**
  * @route  POST /api/diamonds/fetch-by-certificate

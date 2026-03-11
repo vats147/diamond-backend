@@ -59,6 +59,9 @@ model User {
   deletedAt    DateTime?
   createdBy    String?   @db.ObjectId
   updatedBy    String?   @db.ObjectId
+
+  createdDiamonds Diamond[] @relation("DiamondCreator")
+  updatedDiamonds Diamond[] @relation("DiamondUpdater")
 }
 
 enum Role {
@@ -136,9 +139,13 @@ model Diamond {
 
   deletedAt          DateTime?
   createdBy          String?         @db.ObjectId
+  creator            User?           @relation("DiamondCreator", fields: [createdBy], references: [id])
   updatedBy          String?         @db.ObjectId
+  updater            User?           @relation("DiamondUpdater", fields: [updatedBy], references: [id])
 
   inquiries          Inquiry[]
+
+  @@unique([businessId, certificateNumber])
 }
 
 enum CertificateLab {

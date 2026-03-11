@@ -1,0 +1,337 @@
+{
+    "info": {
+        "name": "Diamond Market - Diamond API",
+        "description": "Collection for managing diamonds/jewelry in the Diamond Market Backend. Note: Ensure you set the baseUrl, token, and businessId directly in the Postman environment or collection variables.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Get All Diamonds",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds?businessId={{businessId}}&page=1&limit=10",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds"
+                    ],
+                    "query": [
+                        {
+                            "key": "businessId",
+                            "value": "{{businessId}}"
+                        },
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "limit",
+                            "value": "10"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "2. Add a Diamond (Jewelry)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "businessId",
+                            "value": "{{businessId}}",
+                            "type": "text"
+                        },
+                        {
+                            "key": "shape",
+                            "value": "Round",
+                            "type": "text"
+                        },
+                        {
+                            "key": "carat",
+                            "value": "1.05",
+                            "type": "text"
+                        },
+                        {
+                            "key": "color",
+                            "value": "D",
+                            "type": "text"
+                        },
+                        {
+                            "key": "clarity",
+                            "value": "VVS1",
+                            "type": "text"
+                        },
+                        {
+                            "key": "price",
+                            "value": "5000",
+                            "type": "text"
+                        },
+                        {
+                            "key": "cut",
+                            "value": "Excellent",
+                            "type": "text"
+                        },
+                        {
+                            "key": "polish",
+                            "value": "Excellent",
+                            "type": "text"
+                        },
+                        {
+                            "key": "symmetry",
+                            "value": "Excellent",
+                            "type": "text"
+                        },
+                        {
+                            "key": "fluorescence",
+                            "value": "None",
+                            "type": "text"
+                        },
+                        {
+                            "key": "measurements",
+                            "value": "6.50 x 6.52 x 4.02",
+                            "type": "text"
+                        },
+                        {
+                            "key": "certificateNumber",
+                            "value": "GIA1234567890",
+                            "type": "text"
+                        },
+                        {
+                            "key": "certificateLab",
+                            "value": "GIA",
+                            "type": "text"
+                        },
+                        {
+                            "key": "uploadMethod",
+                            "value": "MANUAL",
+                            "type": "text"
+                        },
+                        {
+                            "key": "images",
+                            "value": "",
+                            "type": "file",
+                            "description": "Select up to 10 image files"
+                        },
+                        {
+                            "key": "video",
+                            "value": "",
+                            "type": "file",
+                            "description": "Select 1 video file"
+                        },
+                        {
+                            "key": "certificateFile",
+                            "value": "",
+                            "type": "file",
+                            "description": "Select 1 certificate PDF/Image"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "3. Get a Diamond by ID",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds/{{diamondId}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds",
+                        "{{diamondId}}"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "4. Update a Diamond",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "price",
+                            "value": "5500",
+                            "type": "text"
+                        },
+                        {
+                            "key": "status",
+                            "value": "SOLD",
+                            "type": "text"
+                        },
+                        {
+                            "key": "images",
+                            "value": "",
+                            "type": "file"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds/{{diamondId}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds",
+                        "{{diamondId}}"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "5. Fetch by Certificate (GIA/IGI)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"certificateNumber\": \"1234567890\",\n    \"lab\": \"GIA\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds/fetch-by-certificate",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds",
+                        "fetch-by-certificate"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "6. Extract Certificate (OCR)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "certificate",
+                            "value": "",
+                            "type": "file"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds/extract-certificate",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds",
+                        "extract-certificate"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "7. Delete a Diamond",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/diamonds/{{diamondId}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "diamonds",
+                        "{{diamondId}}"
+                    ]
+                }
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "YOUR_AUTH_TOKEN_HERE",
+            "type": "string"
+        },
+        {
+            "key": "businessId",
+            "value": "YOUR_BUSINESS_ID_HERE",
+            "type": "string"
+        },
+        {
+            "key": "diamondId",
+            "value": "DIAMOND_ID_HERE",
+            "type": "string"
+        }
+    ]
+}

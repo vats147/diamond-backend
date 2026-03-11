@@ -107,3 +107,19 @@ export const bulkUpload = async (req: AuthRequest, res: Response, next: NextFunc
         sendSuccess(res, data, `Successfully processed bulk upload`);
     } catch (err) { next(err); }
 };
+
+export const downloadCertificate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { lab, certNo } = req.params;
+        const pdfBuffer = await diamondService.getCertificatePdf(String(lab), String(certNo));
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="certificate_${certNo}.pdf"`);
+        
+        // Allow framing from the frontend
+        res.setHeader('Content-Security-Policy', "frame-ancestors 'self' http://localhost:5174");
+        res.setHeader('X-Frame-Options', 'ALLOWALL'); // For older browsers
+
+        res.send(pdfBuffer);
+    } catch (err) { next(err); }
+};

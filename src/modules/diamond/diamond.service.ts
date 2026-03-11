@@ -3,10 +3,11 @@ import { uploadToCloudinary } from '../../config/cloudinary';
 import { notifyNewDiamondAdded } from '../../utils/whatsapp';
 import { CreateDiamondInput, UpdateDiamondInput, FetchByCertificateInput } from './diamond.schema';
 import { fetchGIACertificate, fetchIGICertificate } from './certificate.service';
-import { extractCertificateData } from './ocr.service';
+// import { extractCertificateData } from './ocr.service'; (Missing implementation)
 import { CertificateLab, UploadMethod, DiamondStatus } from '@prisma/client';
 import redisClient, { getBusinessDiamondsCacheKey, getStorefrontCacheKey } from '../../config/redis';
 import * as xlsx from 'xlsx';
+import axios from 'axios';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -15,7 +16,7 @@ import * as xlsx from 'xlsx';
 const buildWhere = (query: Record<string, string>) => {
     const {
         businessId, shape, colors, caratMin, caratMax,
-        clarities, priceMin, priceMax, lab, search,
+        clarities, priceMin, priceMax, lab, search, cut,
 
         // Advanced filter params mapping to DB properties
         tableMin, tableMax, depthMin, depthMax, ratioMin, ratioMax,
@@ -32,6 +33,7 @@ const buildWhere = (query: Record<string, string>) => {
     if (lab) where['certificateLab'] = { in: lab.split(',').map((l) => l.trim().toUpperCase()) };
     if (clarities) where['clarity'] = { in: clarities.split(',').map((c) => c.trim()) };
     if (colors) where['color'] = { in: colors.split(',').map((c) => c.trim().toUpperCase()) };
+    if (cut) where['cut'] = { in: cut.split(',').map((c) => c.trim().toUpperCase()) };
 
     // Range helpers
     const addRange = (field: string, min?: string, max?: string) => {
@@ -144,6 +146,11 @@ export const listDiamonds = async (query: Record<string, string>) => {
             skip,
             take: limit,
             orderBy: { [sortBy]: sortOrder },
+            include: {
+                creator: {
+                    select: { name: true, email: true }
+                }
+            }
         }),
         prisma.diamond.count({ where }),
     ]);
@@ -213,6 +220,7 @@ export const createDiamond = async (
             images: imageUrls,
             videoUrl,
             uploadMethod: input.uploadMethod as UploadMethod,
+            status: (input.status === 'ON_HOLD' ? 'HOLD' : input.status) as DiamondStatus,
             createdBy: userId,
             updatedBy: userId,
         },
@@ -283,7 +291,7 @@ export const updateDiamond = async (
             ...input,
             certificateLab: input.certificateLab as CertificateLab | undefined,
             uploadMethod: input.uploadMethod as UploadMethod | undefined,
-            status: input.status as DiamondStatus | undefined,
+            status: (input.status === 'ON_HOLD' ? 'HOLD' : input.status) as DiamondStatus | undefined,
             ...(imageUrls.length > 0 && { images: imageUrls }),
             ...(videoUrl && { videoUrl }),
             ...(certificateFileUrl && { certificateFileUrl }),
@@ -316,7 +324,8 @@ export const fetchByCertificate = async (input: FetchByCertificateInput) => {
 };
 
 export const extractCertificate = async (file: Express.Multer.File) => {
-    return extractCertificateData(file.buffer, file.mimetype);
+    // return extractCertificateData(file.buffer, file.mimetype);
+    throw new Error('OCR extraction not currently implemented');
 };
 
 export const seedDiamonds = async (businessId: string, userId?: string) => {
@@ -503,4 +512,56 @@ export const bulkUploadDiamonds = async (businessId: string, fileBuffer: Buffer,
         failedCount: errors.length,
         errors
     };
+};
+
+export const getCertificatePdf = async (lab: string, certNo: string) => {
+    const cleanCert = certNo.trim();
+    const labUpper = lab.toUpperCase();
+    let url = "";
+
+    const headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    };
+
+    if (labUpper === 'IGI') {
+        url = `https://api.igi.org/viewpdf.php?r=${cleanCert}`;
+        Object.assign(headers, { 'Referer': 'https://www.igi.org/' });
+    } else if (labUpper === 'GIA') {
+        url = `https://www.gia.edu/otpserver/CertificateDirect?reportno=${cleanCert}&isDigital=true`;
+        Object.assign(headers, { 'Referer': 'https://www.gia.edu/' });
+    } else {
+        throw Object.assign(new Error('Unsupported lab for proxy download'), { statusCode: 400 });
+    }
+
+    try {
+        console.log(`[PDF Proxy] Fetching from ${labUpper}: ${url}`);
+        const response = await axios.get(url, {
+            responseType: 'arraybuffer',
+            headers,
+            timeout: 15000
+        });
+        return Buffer.from(response.data);
+    } catch (err: any) {
+        if (labUpper === 'IGI' && url.includes('api.igi.org')) {
+            const fallbackUrl = `https://pdf.igi.org/FDR${cleanCert.replace(/\D/g, '')}.pdf`;
+            console.log(`[PDF Proxy] IGI API blocked. Trying fallback: ${fallbackUrl}`);
+            try {
+                const fbResponse = await axios.get(fallbackUrl, {
+                    responseType: 'arraybuffer',
+                    headers: { ...headers, 'Referer': 'https://www.igi.org/' },
+                    timeout: 15000
+                });
+                return Buffer.from(fbResponse.data);
+            } catch (fbErr: any) {
+                console.error(`[PDF Proxy] Fallback also failed: ${fbErr.message}`);
+            }
+        }
+        console.error(`[PDF Proxy] Error fetching from ${url}:`, err.message);
+        const status = err.response?.status || 500;
+        throw Object.assign(new Error(`Failed to fetch certificate from ${labUpper} (${status})`), { statusCode: status });
+    }
 };

@@ -6,7 +6,7 @@ export const createDiamondSchema = z.object({
     carat: z.coerce.number().positive(),
     color: z.string().min(1),
     clarity: z.string().min(1),
-    price: z.coerce.number().positive(),
+    price: z.coerce.number().nonnegative(),
 
     // Core grading
     cut: z.string().optional(),
@@ -40,7 +40,7 @@ export const createDiamondSchema = z.object({
     sideOpen: z.string().optional(),
 
     // Logistics
-    status: z.enum(['AVAILABLE', 'HOLD', 'SOLD']).default('AVAILABLE').optional(),
+    status: z.enum(['AVAILABLE', 'HOLD', 'SOLD', 'ON_HOLD']).default('AVAILABLE').optional(),
     location: z.string().optional(),
     earlyBird: z.string().optional(),
 
