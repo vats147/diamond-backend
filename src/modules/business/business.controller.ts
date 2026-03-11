@@ -58,7 +58,15 @@ export const setTheme = async (req: Request, res: Response, next: NextFunction):
 
 export const getBranding = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const data = await businessService.getBranding(String(req.params['slug']));
+        let slugOrId = String(req.params['slug']);
+        const user = (req as any).user;
+
+        // If 'owner' is passed, resolve to the current user's businessId
+        if (slugOrId === 'owner' && user?.businessId) {
+            slugOrId = user.businessId;
+        }
+
+        const data = await businessService.getBranding(slugOrId);
         sendSuccess(res, data);
     } catch (err) { next(err); }
 };

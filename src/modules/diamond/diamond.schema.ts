@@ -40,7 +40,7 @@ export const createDiamondSchema = z.object({
     sideOpen: z.string().optional(),
 
     // Logistics
-    status: z.enum(['AVAILABLE', 'HOLD', 'SOLD', 'ON_HOLD']).default('AVAILABLE').optional(),
+    status: z.enum(['AVAILABLE', 'HOLD', 'SOLD', 'ON_HOLD', 'OFF_MARKET']).default('AVAILABLE').optional(),
     location: z.string().optional(),
     earlyBird: z.string().optional(),
 

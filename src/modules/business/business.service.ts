@@ -156,11 +156,40 @@ export const setTheme = async (id: string, theme: ThemeInput) => {
     return prisma.business.update({ where: { id }, data: { theme, font: theme.font } });
 };
 
-export const getBranding = async (slug: string) => {
-    const business = await prisma.business.findUnique({
-        where: { slug },
-        select: { name: true, logoUrl: true, font: true, theme: true, whatsappNumber: true },
+export const getBranding = async (selector: string) => {
+    // Try finding by slug first, then by ID
+    let business = await prisma.business.findUnique({
+        where: { slug: selector },
+        select: { 
+            name: true, 
+            logoUrl: true, 
+            font: true, 
+            theme: true, 
+            whatsappNumber: true,
+            ownerName: true,
+            contactNumber: true,
+            address: true,
+            email: true
+        },
     });
+
+    if (!business) {
+        business = await prisma.business.findUnique({
+            where: { id: selector },
+            select: { 
+                name: true, 
+                logoUrl: true, 
+                font: true, 
+                theme: true, 
+                whatsappNumber: true,
+                ownerName: true,
+                contactNumber: true,
+                address: true,
+                email: true
+            },
+        });
+    }
+
     if (!business) throw Object.assign(new Error('Business not found'), { statusCode: 404 });
     return business;
 };
